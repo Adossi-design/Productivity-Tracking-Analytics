@@ -1,5 +1,5 @@
-name: time_tracker
-description: A Flutter time tracking app for logging and managing time entries by projects and tasks.
+name: productivity_tracking_analytics
+description: A Flutter application for tracking and managing time entries across projects and tasks.
 publish_to: 'none'
 
 version: 1.0.0+1

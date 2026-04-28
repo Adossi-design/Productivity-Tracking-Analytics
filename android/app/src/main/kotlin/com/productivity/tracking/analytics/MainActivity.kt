@@ -1,4 +1,4 @@
-package com.example.time_tracker
+package com.productivity.tracking.analytics
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -73,12 +73,19 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _TimeEntryListTab(),
-          _ProjectAnalyticsTab(),
-        ],
+      body: Consumer<ProductivityRepository>(
+        builder: (ctx, repository, _) {
+          if (repository.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _TimeEntryListTab(),
+              _ProjectAnalyticsTab(),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(

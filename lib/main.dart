@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'providers/time_tracker_provider.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(ProductivityTrackingApp());
 }
 

@@ -14,6 +14,9 @@ class ProductivityRepository extends ChangeNotifier {
   List<Project> _projects = [];
   List<Task> _tasks = [];
   bool _groupByProject = false;
+  bool _isLoading = true;
+
+  bool get isLoading => _isLoading;
 
   List<TimeEntry> get entries => List<TimeEntry>.unmodifiable(_timeEntries);
   List<Project> get projects => List<Project>.unmodifiable(_projects);
@@ -48,6 +51,7 @@ class ProductivityRepository extends ChangeNotifier {
     final List<String> tasksJson = prefs.getStringList(_tasksKey) ?? [];
     _tasks = tasksJson.map<Task>((t) => Task.fromJson(t)).toList();
 
+    _isLoading = false;
     notifyListeners();
   }
 

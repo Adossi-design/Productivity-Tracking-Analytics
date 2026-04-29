@@ -1,5 +1,6 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// TimeEntry model with denormalized project and task names
 class TimeEntry {
   final String id;
   final String projectName;
@@ -7,6 +8,8 @@ class TimeEntry {
   final String notes;
   final double totalTime;
   final DateTime date;
+  final DateTime? startTime;
+  final DateTime? endTime;
 
   TimeEntry({
     required this.id,
@@ -15,32 +18,25 @@ class TimeEntry {
     required this.notes,
     required this.totalTime,
     required this.date,
+    this.startTime,
+    this.endTime,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'projectName': projectName,
-      'taskName': taskName,
-      'notes': notes,
-      'totalTime': totalTime,
-      'date': date.toIso8601String(),
-    };
-  }
-
-  factory TimeEntry.fromMap(Map<String, dynamic> map) {
+  factory TimeEntry.fromDoc(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return TimeEntry(
-      id: map['id'].toString(),
-      projectName: map['projectName'].toString(),
-      taskName: map['taskName'].toString(),
-      notes: map['notes'].toString(),
-      totalTime: (map['totalTime'] as num).toDouble(),
-      date: DateTime.parse(map['date'].toString()),
+      id: doc.id,
+      projectName: data['projectName'] as String,
+      taskName: data['taskName'] as String,
+      notes: data['notes'] as String,
+      totalTime: (data['totalTime'] as num).toDouble(),
+      date: (data['date'] as Timestamp).toDate(),
+      startTime: data['startTime'] != null
+          ? (data['startTime'] as Timestamp).toDate()
+          : null,
+      endTime: data['endTime'] != null
+          ? (data['endTime'] as Timestamp).toDate()
+          : null,
     );
   }
-
-  String toJson() => json.encode(toMap());
-
-  factory TimeEntry.fromJson(String source) =>
-      TimeEntry.fromMap(json.decode(source) as Map<String, dynamic>);
 }

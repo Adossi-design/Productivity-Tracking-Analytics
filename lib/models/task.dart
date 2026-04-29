@@ -1,32 +1,28 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Task model with parent project reference
 class Task {
   final String id;
   final String name;
   final String projectId;
 
-  Task({
-    required this.id,
-    required this.name,
-    required this.projectId,
-  });
+  Task({required this.id, required this.name, required this.projectId});
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'projectId': projectId,
-    };
-  }
+  Map<String, dynamic> toMap() =>
+      {'id': id, 'name': name, 'projectId': projectId};
 
-  factory Task.fromMap(Map<String, dynamic> map) {
+  factory Task.fromMap(Map<String, dynamic> map) => Task(
+        id: map['id'] as String,
+        name: map['name'] as String,
+        projectId: map['projectId'] as String,
+      );
+
+  factory Task.fromDoc(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return Task(
-      id: map['id'],
-      name: map['name'],
-      projectId: map['projectId'],
+      id: doc.id,
+      name: data['name'] as String,
+      projectId: data['projectId'] as String,
     );
   }
-
-  String toJson() => json.encode(toMap());
-  factory Task.fromJson(String source) => Task.fromMap(json.decode(source));
 }

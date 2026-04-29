@@ -4,7 +4,7 @@ import 'package:productivity_tracking_analytics/main.dart';
 
 void main() {
   testWidgets('App renders without crashing', (WidgetTester tester) async {
-    await tester.pumpWidget(ProductivityTrackingApp());
+    await tester.pumpWidget(const ProductivityTrackingApp());
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

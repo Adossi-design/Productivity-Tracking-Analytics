@@ -1,80 +1,89 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/time_entry.dart';
 import '../models/project.dart';
 import '../models/task.dart';
+import '../models/reminder.dart';
+import '../services/notification_service.dart';
 
+// Central repository for productivity data with Firestore sync
 class ProductivityRepository extends ChangeNotifier {
-  static const String _entriesKey = 'time_entries';
-  static const String _projectsKey = 'projects';
-  static const String _tasksKey = 'tasks';
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  String _userId;
+
+  ProductivityRepository({required String userId}) : _userId = userId {
+    if (_userId.isNotEmpty) _loadAll();
+  }
 
   List<TimeEntry> _timeEntries = [];
   List<Project> _projects = [];
   List<Task> _tasks = [];
+  List<Reminder> _reminders = [];
   bool _groupByProject = false;
-  bool _isLoading = true;
-
+  bool _isLoading = false;
+  String? _error;
+  String get userId => _userId;
   bool get isLoading => _isLoading;
-
-  List<TimeEntry> get entries => List<TimeEntry>.unmodifiable(_timeEntries);
-  List<Project> get projects => List<Project>.unmodifiable(_projects);
-  List<Task> get tasks => List<Task>.unmodifiable(_tasks);
+  String? get error => _error;
   bool get groupByProject => _groupByProject;
+  List<TimeEntry> get entries => List.unmodifiable(_timeEntries);
+  List<Project> get projects => List.unmodifiable(_projects);
+  List<Task> get tasks => List.unmodifiable(_tasks);
+  List<Reminder> get reminders => List.unmodifiable(_reminders);
 
-  Map<String, List<TimeEntry>> get timeEntriesGroupedByProject {
-    final Map<String, List<TimeEntry>> groupedEntries = {};
-    for (final TimeEntry entry in _timeEntries) {
-      if (groupedEntries[entry.projectName] == null) {
-        groupedEntries[entry.projectName] = [];
-      }
-      groupedEntries[entry.projectName]!.add(entry);
-    }
-    return groupedEntries;
+  void setUser(String userId) {
+    _userId = userId;
+    _loadAll();
   }
 
-  ProductivityRepository() {
-    _loadPersistedRecords();
-  }
-
-  Future<void> _loadPersistedRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final List<String> entriesJson = prefs.getStringList(_entriesKey) ?? [];
-    _timeEntries =
-        entriesJson.map<TimeEntry>((e) => TimeEntry.fromJson(e)).toList();
-
-    final List<String> projectsJson = prefs.getStringList(_projectsKey) ?? [];
-    _projects = projectsJson.map<Project>((p) => Project.fromJson(p)).toList();
-
-    final List<String> tasksJson = prefs.getStringList(_tasksKey) ?? [];
-    _tasks = tasksJson.map<Task>((t) => Task.fromJson(t)).toList();
-
+  void clearUser() {
+    _userId = '';
+    _timeEntries = [];
+    _projects = [];
+    _tasks = [];
+    _reminders = [];
+    _error = null;
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> _persistTimeEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> serialized =
-        _timeEntries.map<String>((e) => e.toJson()).toList();
-    await prefs.setStringList(_entriesKey, serialized);
+  CollectionReference get _entriesRef =>
+      _db.collection('users').doc(_userId).collection('time_entries');
+  CollectionReference get _projectsRef =>
+      _db.collection('users').doc(_userId).collection('projects');
+  CollectionReference get _tasksRef =>
+      _db.collection('users').doc(_userId).collection('tasks');
+  CollectionReference get _remindersRef =>
+      _db.collection('users').doc(_userId).collection('reminders');
+
+  Future<void> _loadAll() async {
+    if (_userId.isEmpty) return;
+    
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final results = await Future.wait([
+        _entriesRef.orderBy('date', descending: true).get(),
+        _projectsRef.get(),
+        _tasksRef.get(),
+        _remindersRef.get(),
+      ]);
+      
+      _timeEntries = results[0].docs.map((d) => TimeEntry.fromDoc(d)).toList();
+      _projects = results[1].docs.map((d) => Project.fromDoc(d)).toList();
+      _tasks = results[2].docs.map((d) => Task.fromDoc(d)).toList();
+      _reminders = results[3].docs.map((d) => Reminder.fromDoc(d)).toList();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  Future<void> _persistProjects() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> serialized =
-        _projects.map<String>((p) => p.toJson()).toList();
-    await prefs.setStringList(_projectsKey, serialized);
-  }
-
-  Future<void> _persistTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> serialized =
-        _tasks.map<String>((t) => t.toJson()).toList();
-    await prefs.setStringList(_tasksKey, serialized);
-  }
+  Future<void> reload() => _loadAll();
 
   Future<void> addEntry({
     required String projectName,
@@ -82,74 +91,143 @@ class ProductivityRepository extends ChangeNotifier {
     required String notes,
     required double totalTime,
     required DateTime date,
+    DateTime? startTime,
+    DateTime? endTime,
   }) async {
-    final TimeEntry newEntry = TimeEntry(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      projectName: projectName,
-      taskName: taskName,
-      notes: notes,
-      totalTime: totalTime,
-      date: date,
+    final data = <String, dynamic>{
+      'projectName': projectName,
+      'taskName': taskName,
+      'notes': notes,
+      'totalTime': totalTime,
+      'date': Timestamp.fromDate(date),
+    };
+    if (startTime != null) data['startTime'] = Timestamp.fromDate(startTime);
+    if (endTime != null) data['endTime'] = Timestamp.fromDate(endTime);
+
+    final ref = await _entriesRef.add(data);
+
+    if (startTime != null && endTime != null) {
+      await NotificationService.instance.scheduleSession(
+        id: ref.id.hashCode.abs() % 100000,
+        projectName: projectName,
+        taskName: taskName,
+        startTime: startTime,
+        endTime: endTime,
+      );
+    }
+
+    _timeEntries.insert(
+      0,
+      TimeEntry(
+        id: ref.id,
+        projectName: projectName,
+        taskName: taskName,
+        notes: notes,
+        totalTime: totalTime,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+      ),
     );
-    _timeEntries.insert(0, newEntry);
-    await _persistTimeEntries();
     notifyListeners();
   }
 
   Future<void> deleteEntry(String entryId) async {
-    _timeEntries.removeWhere((TimeEntry e) => e.id == entryId);
-    await _persistTimeEntries();
+    await _entriesRef.doc(entryId).delete();
+    _timeEntries.removeWhere((e) => e.id == entryId);
     notifyListeners();
   }
 
-  Future<void> addProject(String projectName) async {
-    final Project newProject = Project(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: projectName,
-    );
-    _projects.add(newProject);
-    await _persistProjects();
+  Future<void> addProject(String name) async {
+    final ref = await _projectsRef.add({'name': name});
+    _projects.add(Project(id: ref.id, name: name));
     notifyListeners();
   }
 
   Future<void> deleteProject(String projectId) async {
-    _projects.removeWhere((Project p) => p.id == projectId);
-    await _persistProjects();
+    final projectReminders =
+        _reminders.where((r) => r.projectId == projectId).toList();
+    for (final r in projectReminders) {
+      await cancelReminder(r.id);
+    }
+    
+    await _projectsRef.doc(projectId).delete();
+    _projects.removeWhere((p) => p.id == projectId);
     notifyListeners();
   }
 
-  Future<void> addTask(String taskName, String projectId) async {
-    final Task newTask = Task(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: taskName,
-      projectId: projectId,
-    );
-    _tasks.add(newTask);
-    await _persistTasks();
+  Future<void> addTask(String name, String projectId) async {
+    final ref = await _tasksRef.add({'name': name, 'projectId': projectId});
+    _tasks.add(Task(id: ref.id, name: name, projectId: projectId));
     notifyListeners();
   }
 
   Future<void> deleteTask(String taskId) async {
-    _tasks.removeWhere((Task t) => t.id == taskId);
-    await _persistTasks();
+    await _tasksRef.doc(taskId).delete();
+    _tasks.removeWhere((t) => t.id == taskId);
     notifyListeners();
   }
 
-  List<Task> getTasksForProject(String projectId) {
-    return _tasks.where((Task t) => t.projectId == projectId).toList();
+  List<Task> tasksForProject(String projectId) =>
+      _tasks.where((t) => t.projectId == projectId).toList();
+
+  Future<void> addReminder({
+    required String projectId,
+    required String projectName,
+    required DateTime scheduledTime,
+    required String sound,
+  }) async {
+    final ref = await _remindersRef.add({
+      'projectId': projectId,
+      'projectName': projectName,
+      'scheduledTime': Timestamp.fromDate(scheduledTime),
+      'sound': sound,
+    });
+    
+    final reminder = Reminder(
+      id: ref.id,
+      projectId: projectId,
+      projectName: projectName,
+      scheduledTime: scheduledTime,
+      sound: sound,
+    );
+    _reminders.add(reminder);
+
+    await NotificationService.instance.scheduleReminder(
+      id: ref.id.hashCode.abs() % 100000,
+      projectName: projectName,
+      scheduledTime: scheduledTime,
+      sound: sound,
+    );
+
+    notifyListeners();
+  }
+
+  Future<void> cancelReminder(String reminderId) async {
+    final reminder = _reminders.where((r) => r.id == reminderId).firstOrNull;
+    if (reminder != null) {
+      await NotificationService.instance
+          .cancelReminder(reminder.id.hashCode.abs() % 100000);
+    }
+    
+    await _remindersRef.doc(reminderId).delete();
+    _reminders.removeWhere((r) => r.id == reminderId);
+    notifyListeners();
+  }
+
+  List<Reminder> remindersForProject(String projectId) =>
+      _reminders.where((r) => r.projectId == projectId).toList();
+
+  Map<String, List<TimeEntry>> get timeEntriesGroupedByProject {
+    final map = <String, List<TimeEntry>>{};
+    for (final e in _timeEntries) {
+      map.putIfAbsent(e.projectName, () => []).add(e);
+    }
+    return map;
   }
 
   void toggleGroupByProject() {
     _groupByProject = !_groupByProject;
     notifyListeners();
-  }
-
-  Future<Map<String, String>> fetchRawStorageSnapshot() async {
-    final prefs = await SharedPreferences.getInstance();
-    return {
-      'time_entries': json.encode(prefs.getStringList(_entriesKey) ?? []),
-      'projects': json.encode(prefs.getStringList(_projectsKey) ?? []),
-      'tasks': json.encode(prefs.getStringList(_tasksKey) ?? []),
-    };
   }
 }

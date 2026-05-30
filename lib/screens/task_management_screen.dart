@@ -16,13 +16,16 @@ class TaskManagementScreen extends StatelessWidget {
     String? selectedProjectId = preselectedProjectId;
 
     if (repo.projects.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Create a project first before adding tasks.'),
-        backgroundColor: const Color(0xFFF59E0B),
-        behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Create a project first before adding tasks.'),
+          backgroundColor: const Color(0xFFF59E0B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
       return;
     }
 
@@ -30,8 +33,10 @@ class TaskManagementScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l.addTask,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+            l.addTask,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -40,14 +45,19 @@ class TaskManagementScreen extends StatelessWidget {
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: l.taskName,
-                  prefixIcon: const Icon(Icons.task_alt,
-                      color: Color(0xFF6366F1)),
+                  prefixIcon: const Icon(
+                    Icons.task_alt,
+                    color: Color(0xFF6366F1),
+                  ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: Color(0xFF6366F1), width: 2),
+                      color: Color(0xFF6366F1),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -56,33 +66,38 @@ class TaskManagementScreen extends StatelessWidget {
                 initialValue: selectedProjectId,
                 hint: Text(l.selectParentProject),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.folder_outlined,
-                      color: Color(0xFF6366F1)),
+                  prefixIcon: const Icon(
+                    Icons.folder_outlined,
+                    color: Color(0xFF6366F1),
+                  ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: Color(0xFF6366F1), width: 2),
+                      color: Color(0xFF6366F1),
+                      width: 2,
+                    ),
                   ),
                 ),
                 items: repo.projects
-                    .map((p) => DropdownMenuItem(
-                        value: p.id, child: Text(p.name)))
+                    .map(
+                      (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+                    )
                     .toList(),
-                onChanged: (v) =>
-                    setDialogState(() => selectedProjectId = v),
+                onChanged: (v) => setDialogState(() => selectedProjectId = v),
               ),
             ],
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l.cancel)),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.cancel),
+            ),
             ElevatedButton(
               onPressed: () {
-                if (ctrl.text.trim().isNotEmpty &&
-                    selectedProjectId != null) {
+                if (ctrl.text.trim().isNotEmpty && selectedProjectId != null) {
                   repo.addTask(ctrl.text.trim(), selectedProjectId!);
                   Navigator.pop(ctx);
                 }
@@ -105,8 +120,8 @@ class TaskManagementScreen extends StatelessWidget {
         builder: (ctx, repo, _) {
           if (repo.isLoading) {
             return const Center(
-                child:
-                    CircularProgressIndicator(color: Color(0xFF6366F1)));
+              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+            );
           }
 
           if (repo.projects.isEmpty) {
@@ -119,17 +134,23 @@ class TaskManagementScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF59E0B)
-                            .withValues(alpha: 0.1),
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.folder_off_outlined,
-                          size: 56, color: Color(0xFFF59E0B)),
+                      child: const Icon(
+                        Icons.folder_off_outlined,
+                        size: 56,
+                        color: Color(0xFFF59E0B),
+                      ),
                     ),
                     const SizedBox(height: 20),
-                    const Text('No projects yet',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'No projects yet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     const Text(
                       'Create a project first, then add tasks to it.',
@@ -143,14 +164,10 @@ class TaskManagementScreen extends StatelessWidget {
           }
 
           final projectsWithTasks = repo.projects
-              .map((p) => (
-                    project: p,
-                    tasks: repo.tasksForProject(p.id),
-                  ))
+              .map((p) => (project: p, tasks: repo.tasksForProject(p.id)))
               .toList();
 
-          final hasAnyTask =
-              projectsWithTasks.any((g) => g.tasks.isNotEmpty);
+          final hasAnyTask = projectsWithTasks.any((g) => g.tasks.isNotEmpty);
 
           if (!hasAnyTask) {
             return Center(
@@ -160,21 +177,28 @@ class TaskManagementScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1)
-                          .withValues(alpha: 0.1),
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.task_alt,
-                        size: 64, color: Color(0xFF6366F1)),
+                    child: const Icon(
+                      Icons.task_alt,
+                      size: 64,
+                      color: Color(0xFF6366F1),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  Text(l.noTasksYet,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    l.noTasksYet,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(l.noTasksYetSubtitle,
-                      style:
-                          const TextStyle(color: Color(0xFF6B7280))),
+                  Text(
+                    l.noTasksYetSubtitle,
+                    style: const TextStyle(color: Color(0xFF6B7280)),
+                  ),
                 ],
               ),
             );
@@ -192,75 +216,99 @@ class TaskManagementScreen extends StatelessWidget {
                   Container(
                     margin: const EdgeInsets.only(bottom: 8, top: 4),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF6366F1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.folder,
-                            color: Colors.white, size: 16),
+                        const Icon(Icons.folder, color: Colors.white, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(group.project.name,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
-                        ),
-                        Text('${group.tasks.length} tasks',
+                          child: Text(
+                            group.project.name,
                             style: const TextStyle(
-                                color: Colors.white70, fontSize: 12)),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${group.tasks.length} tasks',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         InkWell(
                           onTap: () => _showAddDialog(
-                              context, l, repo,
-                              preselectedProjectId: group.project.id),
-                          child: const Icon(Icons.add,
-                              color: Colors.white, size: 20),
+                            context,
+                            l,
+                            repo,
+                            preselectedProjectId: group.project.id,
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  ...group.tasks.map((task) => Dismissible(
-                        key: Key(task.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.delete,
-                              color: Colors.white),
+                  ...group.tasks.map(
+                    (task) => Dismissible(
+                      key: Key(task.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        onDismissed: (_) => repo.deleteTask(task.id),
-                        child: Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981)
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.task_alt,
-                                  color: Color(0xFF10B981), size: 18),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (_) => repo.deleteTask(task.id),
+                      child: Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            title: Text(task.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Color(0xFFEF4444), size: 20),
-                              onPressed: () => repo.deleteTask(task.id),
+                            child: const Icon(
+                              Icons.task_alt,
+                              color: Color(0xFF10B981),
+                              size: 18,
                             ),
                           ),
+                          title: Text(
+                            task.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Color(0xFFEF4444),
+                              size: 20,
+                            ),
+                            onPressed: () => repo.deleteTask(task.id),
+                          ),
                         ),
-                      )),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                 ],
               );

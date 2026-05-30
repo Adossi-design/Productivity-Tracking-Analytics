@@ -27,7 +27,8 @@ class _WebScheduler {
     if (delay.isNegative) return;
 
     debugPrint(
-        '[WebScheduler] Scheduling id=$id "$title" in ${delay.inSeconds}s');
+      '[WebScheduler] Scheduling id=$id "$title" in ${delay.inSeconds}s',
+    );
 
     final timer = Timer(delay, () {
       _fireWebNotification(title: title, body: body);
@@ -42,27 +43,16 @@ class _WebScheduler {
     debugPrint('[WebScheduler] Cancelled id=$id');
   }
 
-  static void _fireWebNotification(
-      {required String title, required String body}) {
+  static void _fireWebNotification({
+    required String title,
+    required String body,
+  }) {
     debugPrint('[WebScheduler] Firing: $title — $body');
-    // Use browser Notification API via eval
-    // This works when the tab is open and permission is granted
-    try {
-      // ignore: avoid_web_libraries_in_flutter
-      // We use a conditional import approach via the platform check
-      _showBrowserNotification(title, body);
-    } catch (e) {
-      debugPrint('[WebScheduler] Browser notification error: $e');
-    }
-  }
-
-  static void _showBrowserNotification(String title, String body) {
-    // dart:js is deprecated in Dart 3 — use package:web or js_interop
-    // For maximum compatibility we use a simple approach:
-    // The notification is shown as a Flutter overlay snackbar fallback
-    // since dart:js_interop requires a different setup.
-    // The in-app timer still fires and can be caught by the app.
-    debugPrint('[Notification] $title: $body');
+    // flutter_local_notifications has no web support and dart:js notifications
+    // require the tab to stay focused. We surface the notification through the
+    // app's in-app handler (an animated snackbar wired up in main.dart) so the
+    // user actually sees it — previously this was a silent no-op.
+    NotificationService.onInAppNotification?.call(title, body);
   }
 }
 
@@ -78,11 +68,20 @@ class NotificationService {
   // Callback for in-app notification display (set by main.dart)
   static void Function(String title, String body)? onInAppNotification;
 
-  static const List<({String label, String value, String description})> soundOptions = [
-    (label: '🔔 Default', value: 'default', description: 'System default notification sound'),
+  static const List<({String label, String value, String description})>
+  soundOptions = [
+    (
+      label: '🔔 Default',
+      value: 'default',
+      description: 'System default notification sound',
+    ),
     (label: '⏰ Alarm', value: 'alarm', description: 'Loud alarm sound'),
     (label: '🎵 Chime', value: 'chime', description: 'Gentle chime'),
-    (label: '🔊 Alert', value: 'alert', description: 'Attention-grabbing alert'),
+    (
+      label: '🔊 Alert',
+      value: 'alert',
+      description: 'Attention-grabbing alert',
+    ),
   ];
 
   // ── Init ───────────────────────────────────────────────────────────────────
@@ -90,7 +89,8 @@ class NotificationService {
   Future<void> init() async {
     if (kIsWeb) {
       debugPrint(
-          '[NotificationService] ⚠️ Web platform — using in-app timer fallback');
+        '[NotificationService] ⚠️ Web platform — using in-app timer fallback',
+      );
       debugPrint('[NotificationService] ℹ️ Browser notifications require:');
       debugPrint('[NotificationService]   1. User permission');
       debugPrint('[NotificationService]   2. Tab must remain open');
@@ -101,20 +101,24 @@ class NotificationService {
 
     try {
       debugPrint('[NotificationService] 🚀 Initializing...');
-      
+
       // Initialize timezones
       tz.initializeTimeZones();
-      
+
       // Set local timezone with better fallback
       try {
         // Try to use system timezone
         final now = DateTime.now();
         final offset = now.timeZoneOffset;
-        debugPrint('[NotificationService] System timezone offset: ${offset.inHours}h');
-        
+        debugPrint(
+          '[NotificationService] System timezone offset: ${offset.inHours}h',
+        );
+
         // Use UTC offset to find closest timezone
         tz.setLocalLocation(tz.getLocation('UTC'));
-        debugPrint('[NotificationService] ✅ Timezone set to UTC (safe fallback)');
+        debugPrint(
+          '[NotificationService] ✅ Timezone set to UTC (safe fallback)',
+        );
       } catch (e) {
         debugPrint('[NotificationService] ⚠️ Timezone error: $e');
         tz.setLocalLocation(tz.getLocation('UTC'));
@@ -130,44 +134,61 @@ class NotificationService {
       await _plugin.initialize(
         const InitializationSettings(android: android, iOS: ios),
         onDidReceiveNotificationResponse: (details) {
-          debugPrint('[NotificationService] 📬 Notification tapped: ${details.payload}');
+          debugPrint(
+            '[NotificationService] 📬 Notification tapped: ${details.payload}',
+          );
         },
       );
 
       // Request permissions
-      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      
+      final androidImpl = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+
       if (androidImpl != null) {
         final granted = await androidImpl.requestNotificationsPermission();
-        debugPrint('[NotificationService] 📱 Android notification permission: $granted');
-        
+        debugPrint(
+          '[NotificationService] 📱 Android notification permission: $granted',
+        );
+
         // Request exact alarm permission (Android 12+)
         try {
           final exactGranted = await androidImpl.requestExactAlarmsPermission();
-          debugPrint('[NotificationService] ⏰ Exact alarm permission: $exactGranted');
-          
+          debugPrint(
+            '[NotificationService] ⏰ Exact alarm permission: $exactGranted',
+          );
+
           if (exactGranted == false) {
-            debugPrint('[NotificationService] ⚠️ CRITICAL: Exact alarms not permitted!');
-            debugPrint('[NotificationService] ℹ️ User must enable in Settings > Apps > Special access > Alarms & reminders');
+            debugPrint(
+              '[NotificationService] ⚠️ CRITICAL: Exact alarms not permitted!',
+            );
+            debugPrint(
+              '[NotificationService] ℹ️ User must enable in Settings > Apps > Special access > Alarms & reminders',
+            );
           }
         } catch (e) {
-          debugPrint('[NotificationService] ⚠️ Exact alarm permission check failed: $e');
+          debugPrint(
+            '[NotificationService] ⚠️ Exact alarm permission check failed: $e',
+          );
         }
       }
 
       _initialized = true;
       debugPrint('[NotificationService] ✅ Initialized successfully');
-      
-      // Test notification
-      await _testNotification();
+
+      // Fire a one-off confirmation notification in debug builds only.
+      // Shipping this to real users on every launch is noise.
+      if (kDebugMode) {
+        await _testNotification();
+      }
     } catch (e, stack) {
       debugPrint('[NotificationService] ❌ Initialization failed: $e');
       debugPrint('[NotificationService] Stack: $stack');
       rethrow;
     }
   }
-  
+
   Future<void> _testNotification() async {
     try {
       debugPrint('[NotificationService] 🧪 Sending test notification...');
@@ -208,18 +229,20 @@ class NotificationService {
 
     try {
       await init();
-      
+
       final now = DateTime.now();
       if (scheduledTime.isBefore(now)) {
         debugPrint('[NotificationService] ⚠️ Scheduled time is in the past!');
         throw Exception('Cannot schedule notification in the past');
       }
-      
+
       final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
       final tzNow = tz.TZDateTime.now(tz.local);
       final minutesUntil = tzTime.difference(tzNow).inMinutes;
-      
-      debugPrint('[NotificationService] ⏱️ Time until notification: $minutesUntil minutes');
+
+      debugPrint(
+        '[NotificationService] ⏱️ Time until notification: $minutesUntil minutes',
+      );
       debugPrint('[NotificationService] 📅 TZ Time: $tzTime');
       debugPrint('[NotificationService] 📅 TZ Now: $tzNow');
 
@@ -239,7 +262,9 @@ class NotificationService {
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
         );
-        debugPrint('[NotificationService] ✅ Scheduled 10-min reminder (ID: ${id * 10})');
+        debugPrint(
+          '[NotificationService] ✅ Scheduled 10-min reminder (ID: ${id * 10})',
+        );
         scheduled++;
       }
 
@@ -256,7 +281,9 @@ class NotificationService {
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
         );
-        debugPrint('[NotificationService] ✅ Scheduled 5-min reminder (ID: ${id * 10 + 1})');
+        debugPrint(
+          '[NotificationService] ✅ Scheduled 5-min reminder (ID: ${id * 10 + 1})',
+        );
         scheduled++;
       }
 
@@ -272,12 +299,16 @@ class NotificationService {
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
         );
-        debugPrint('[NotificationService] ✅ Scheduled exact-time reminder (ID: ${id * 10 + 2})');
+        debugPrint(
+          '[NotificationService] ✅ Scheduled exact-time reminder (ID: ${id * 10 + 2})',
+        );
         scheduled++;
       }
-      
-      debugPrint('[NotificationService] 🎉 Total notifications scheduled: $scheduled');
-      
+
+      debugPrint(
+        '[NotificationService] 🎉 Total notifications scheduled: $scheduled',
+      );
+
       // Verify scheduled notifications
       await _verifyScheduled();
     } catch (e, stack) {
@@ -286,16 +317,20 @@ class NotificationService {
       rethrow;
     }
   }
-  
+
   Future<void> _verifyScheduled() async {
     try {
       final pending = await _plugin.pendingNotificationRequests();
-      debugPrint('[NotificationService] 📋 Pending notifications: ${pending.length}');
+      debugPrint(
+        '[NotificationService] 📋 Pending notifications: ${pending.length}',
+      );
       for (final n in pending) {
         debugPrint('[NotificationService]   - ID ${n.id}: ${n.title}');
       }
     } catch (e) {
-      debugPrint('[NotificationService] ⚠️ Could not verify scheduled notifications: $e');
+      debugPrint(
+        '[NotificationService] ⚠️ Could not verify scheduled notifications: $e',
+      );
     }
   }
 
@@ -307,9 +342,11 @@ class NotificationService {
     required String taskName,
     required DateTime startTime,
     required DateTime endTime,
+    String sound = 'default',
   }) async {
     debugPrint(
-        '[NotificationService] scheduleSession id=$id start=$startTime end=$endTime');
+      '[NotificationService] scheduleSession id=$id start=$startTime end=$endTime',
+    );
 
     if (kIsWeb) {
       _scheduleWebSession(
@@ -326,7 +363,7 @@ class NotificationService {
     final tzStart = tz.TZDateTime.from(startTime, tz.local);
     final tzEnd = tz.TZDateTime.from(endTime, tz.local);
     final now = tz.TZDateTime.now(tz.local);
-    final details = _buildDetails('default');
+    final details = _buildDetails(sound);
 
     if (tzStart.isAfter(now)) {
       await _plugin.zonedSchedule(
@@ -355,7 +392,8 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
       );
       debugPrint(
-          '[NotificationService] Session 5min-end scheduled id=${id * 10 + 1}');
+        '[NotificationService] Session 5min-end scheduled id=${id * 10 + 1}',
+      );
     }
 
     if (tzEnd.isAfter(now)) {
@@ -370,7 +408,8 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
       );
       debugPrint(
-          '[NotificationService] Session end scheduled id=${id * 10 + 2}');
+        '[NotificationService] Session end scheduled id=${id * 10 + 2}',
+      );
     }
   }
 
@@ -382,11 +421,6 @@ class NotificationService {
     required DateTime scheduledTime,
   }) {
     final now = DateTime.now();
-
-    void fire(String title, String body) {
-      debugPrint('[WebNotification] $title: $body');
-      onInAppNotification?.call(title, body);
-    }
 
     final tenBefore = scheduledTime.subtract(const Duration(minutes: 10));
     if (tenBefore.isAfter(now)) {
@@ -418,7 +452,8 @@ class NotificationService {
     }
 
     debugPrint(
-        '[NotificationService] Web timers scheduled for "$projectName" at $scheduledTime');
+      '[NotificationService] Web timers scheduled for "$projectName" at $scheduledTime',
+    );
   }
 
   void _scheduleWebSession({
@@ -509,7 +544,7 @@ class NotificationService {
       default:
         soundFile = null; // Use system default
     }
-    
+
     return NotificationDetails(
       android: AndroidNotificationDetails(
         'reminders_channel',
@@ -518,7 +553,9 @@ class NotificationService {
         importance: Importance.max,
         priority: Priority.high,
         playSound: true,
-        sound: soundFile != null ? RawResourceAndroidNotificationSound(soundFile) : null,
+        sound: soundFile != null
+            ? RawResourceAndroidNotificationSound(soundFile)
+            : null,
         enableVibration: true,
         vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
         icon: '@mipmap/ic_launcher',
@@ -534,7 +571,7 @@ class NotificationService {
       ),
     );
   }
-  
+
   /// Preview a notification sound
   Future<void> previewSound(String sound) async {
     debugPrint('[NotificationService] 🔊 Previewing sound: $sound');

@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Security model: every document lives under users/{uid}/... and is readable
+// and writable ONLY by the authenticated owner of that uid. Nothing is public.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // All user-owned data is namespaced under /users/{uid}.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Any sub-collection (time_entries, projects, tasks, reminders, profile…)
+      // inherits the same owner-only rule.
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Deny everything that is not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

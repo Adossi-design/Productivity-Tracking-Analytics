@@ -370,4 +370,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scheduleNewSession => 'Schedule New Work Session';
+
+  @override
+  String get clusterQuality => 'Cluster quality';
+
+  @override
+  String get mlNoData => 'No data yet. Start logging time entries!';
+
+  @override
+  String get productivityScore => 'Productivity Score';
+
+  @override
+  String get scoreVolume => 'Volume';
+
+  @override
+  String get scoreConsistency => 'Consistency';
+
+  @override
+  String get scoreFocus => 'Focus';
+
+  @override
+  String get scoreBalance => 'Balance';
+
+  @override
+  String get scoreEfficiency => 'Efficiency';
+
+  @override
+  String get scoreExcellent => 'Excellent';
+
+  @override
+  String get scoreGood => 'Good';
+
+  @override
+  String get scoreFair => 'Fair';
+
+  @override
+  String get scoreNeedsImprovement => 'Needs Improvement';
+
+  @override
+  String get anomalyDetection => 'Anomaly Detection';
+
+  @override
+  String get noAnomalies =>
+      'No anomalies detected - your work patterns are consistent!';
+
+  @override
+  String get patternRecognition => 'Pattern Recognition';
+
+  @override
+  String get noPatterns => 'Not enough data to detect patterns yet';
+
+  @override
+  String get confidenceLabel => 'Confidence';
+
+  @override
+  String get recommendations => 'Recommendations';
+
+  @override
+  String get noRecommendations => 'No recommendations at this time';
+
+  @override
+  String get scheduleWorkSession => 'Schedule Work Session';
+
+  @override
+  String get sectionProject => 'Project';
+
+  @override
+  String get sectionTask => 'Task';
+
+  @override
+  String get sectionSchedule => 'Schedule';
+
+  @override
+  String get sectionReminder => 'Reminder';
+
+  @override
+  String get sectionNotesOptional => 'Notes (Optional)';
+
+  @override
+  String get scheduleSessionAction => 'Schedule Session';
+
+  @override
+  String get schedulingInProgress => 'Scheduling...';
+
+  @override
+  String get forecastTitle => 'Forecast';
+
+  @override
+  String get forecastNextDay => 'Predicted next day';
+
+  @override
+  String get forecastNext7Days => 'Next 7 days';
+
+  @override
+  String get modelAccuracy => 'Model accuracy (held-out test)';
+
+  @override
+  String get trendIncreasing => 'Increasing';
+
+  @override
+  String get trendDecreasing => 'Decreasing';
+
+  @override
+  String get trendStable => 'Stable';
+
+  @override
+  String get forecastInsufficient =>
+      'Log a few more days to unlock forecasting';
+
+  @override
+  String forecastValidation(int train, int test) {
+    return 'Trained on $train days · validated on $test';
+  }
 }

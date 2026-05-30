@@ -16,23 +16,23 @@ class UnifiedScheduleScreen extends StatefulWidget {
 
 class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   Project? _selectedProject;
   bool _creatingNewProject = false;
   final _newProjectController = TextEditingController();
-  
+
   String? _selectedTaskId;
   bool _creatingNewTask = false;
   final _newTaskController = TextEditingController();
-  
+
   DateTime _selectedStartDate = DateTime.now();
   DateTime _selectedEndDate = DateTime.now();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-  
+
   bool _setReminder = true;
   String _selectedSound = 'default';
-  
+
   final _notesController = TextEditingController();
   bool _isSaving = false;
 
@@ -53,46 +53,56 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
 
   DateTime? get _startDateTime {
     if (_startTime == null) return null;
-    return DateTime(_selectedStartDate.year, _selectedStartDate.month,
-        _selectedStartDate.day, _startTime!.hour, _startTime!.minute);
+    return DateTime(
+      _selectedStartDate.year,
+      _selectedStartDate.month,
+      _selectedStartDate.day,
+      _startTime!.hour,
+      _startTime!.minute,
+    );
   }
 
   DateTime? get _endDateTime {
     if (_endTime == null) return null;
-    return DateTime(_selectedEndDate.year, _selectedEndDate.month,
-        _selectedEndDate.day, _endTime!.hour, _endTime!.minute);
+    return DateTime(
+      _selectedEndDate.year,
+      _selectedEndDate.month,
+      _selectedEndDate.day,
+      _endTime!.hour,
+      _endTime!.minute,
+    );
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final repo = context.read<ProductivityRepository>();
-    
+
     if (!_creatingNewProject && _selectedProject == null) {
       _showError('Please select or create a project');
       return;
     }
-    
+
     if (_creatingNewProject && _newProjectController.text.trim().isEmpty) {
       _showError('Please enter a project name');
       return;
     }
-    
+
     if (!_creatingNewTask && _selectedTaskId == null) {
       _showError('Please select or create a task');
       return;
     }
-    
+
     if (_creatingNewTask && _newTaskController.text.trim().isEmpty) {
       _showError('Please enter a task name');
       return;
     }
-    
+
     if (_startTime == null || _endTime == null) {
       _showError('Please set both start and end time');
       return;
     }
-    
+
     final hours = _computedHours!;
     if (hours <= 0) {
       _showError('End time must be after start time');
@@ -100,22 +110,22 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
     }
 
     setState(() => _isSaving = true);
-    
+
     try {
       String projectId;
       String projectName;
-      
+
       if (_creatingNewProject) {
         projectName = _newProjectController.text.trim();
-        await repo.addProject(projectName);
-        projectId = repo.projects.last.id;
+        final project = await repo.addProject(projectName);
+        projectId = project.id;
       } else {
         projectId = _selectedProject!.id;
         projectName = _selectedProject!.name;
       }
-      
+
       String taskName;
-      
+
       if (_creatingNewTask) {
         taskName = _newTaskController.text.trim();
         await repo.addTask(taskName, projectId);
@@ -123,7 +133,10 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
         final task = repo.tasks.firstWhere((t) => t.id == _selectedTaskId);
         taskName = task.name;
       }
-      
+
+      // Single scheduling path: addEntry schedules the session's notifications
+      // when the reminder toggle is on, so the user no longer receives a
+      // duplicate set of alerts from a second addReminder call.
       await repo.addEntry(
         projectName: projectName,
         taskName: taskName,
@@ -132,21 +145,10 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
         date: _selectedStartDate,
         startTime: _startDateTime,
         endTime: _endDateTime,
+        scheduleNotifications: _setReminder,
+        sound: _selectedSound,
       );
-      
-      if (_setReminder && _startDateTime != null && !kIsWeb) {
-        try {
-          await repo.addReminder(
-            projectId: projectId,
-            projectName: projectName,
-            scheduledTime: _startDateTime!,
-            sound: _selectedSound,
-          );
-        } catch (e) {
-          if (mounted) _showWarning('Session scheduled but reminder failed: $e');
-        }
-      }
-      
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -174,16 +176,6 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
     );
   }
 
-  void _showWarning(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: const Color(0xFFF59E0B),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
@@ -194,7 +186,9 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('⚠️ Web Platform: Notifications require browser tab to stay open'),
+              content: Text(
+                '⚠️ Web Platform: Notifications require browser tab to stay open',
+              ),
               backgroundColor: Color(0xFFF59E0B),
               duration: Duration(seconds: 5),
             ),
@@ -205,9 +199,7 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('📅 Schedule Work Session'),
-      ),
+      appBar: AppBar(title: Text('📅 ${l.scheduleWorkSession}')),
       body: Consumer<ProductivityRepository>(
         builder: (ctx, repo, _) {
           return SingleChildScrollView(
@@ -217,23 +209,29 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader('1️⃣ Project', Icons.folder),
+                  _buildSectionHeader('1️⃣ ${l.sectionProject}', Icons.folder),
                   const SizedBox(height: 12),
                   _buildProjectSelector(repo),
                   const SizedBox(height: 24),
 
-                  _buildSectionHeader('2️⃣ Task', Icons.task_alt),
+                  _buildSectionHeader('2️⃣ ${l.sectionTask}', Icons.task_alt),
                   const SizedBox(height: 12),
                   _buildTaskSelector(repo),
                   const SizedBox(height: 24),
 
-                  _buildSectionHeader('3️⃣ Schedule', Icons.schedule),
+                  _buildSectionHeader(
+                    '3️⃣ ${l.sectionSchedule}',
+                    Icons.schedule,
+                  ),
                   const SizedBox(height: 12),
                   _buildDateTimePickers(isDark),
                   const SizedBox(height: 24),
 
                   if (!kIsWeb) ...[
-                    _buildSectionHeader('4️⃣ Reminder', Icons.alarm),
+                    _buildSectionHeader(
+                      '4️⃣ ${l.sectionReminder}',
+                      Icons.alarm,
+                    ),
                     const SizedBox(height: 12),
                     _buildReminderToggle(),
                     if (_setReminder) ...[
@@ -243,7 +241,10 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                     const SizedBox(height: 24),
                   ],
 
-                  _buildSectionHeader('5️⃣ Notes (Optional)', Icons.notes),
+                  _buildSectionHeader(
+                    '5️⃣ ${l.sectionNotesOptional}',
+                    Icons.notes,
+                  ),
                   const SizedBox(height: 12),
                   _buildNotesField(),
                   const SizedBox(height: 32),
@@ -258,13 +259,19 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : const Icon(Icons.check_circle),
                       label: Text(
-                        _isSaving ? 'Scheduling...' : '✅ Schedule Session',
+                        _isSaving
+                            ? l.schedulingInProgress
+                            : '✅ ${l.scheduleSessionAction}',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -335,11 +342,19 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                     autofocus: true,
                     decoration: InputDecoration(
                       hintText: 'Enter project name',
-                      prefixIcon: const Icon(Icons.folder, color: Color(0xFF6366F1)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(
+                        Icons.folder,
+                        color: Color(0xFF6366F1),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF6366F1),
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -352,16 +367,20 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                           _showError('Please enter a project name');
                           return;
                         }
-                        await repo.addProject(_newProjectController.text.trim());
+                        final project = await repo.addProject(
+                          _newProjectController.text.trim(),
+                        );
                         setState(() {
-                          _selectedProject = repo.projects.last;
+                          _selectedProject = project;
                           _creatingNewProject = false;
                           _newProjectController.clear();
                         });
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('✅ Project "${_selectedProject!.name}" created'),
+                              content: Text(
+                                '✅ Project "${_selectedProject!.name}" created',
+                              ),
                               backgroundColor: const Color(0xFF10B981),
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -390,14 +409,22 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
               )
             else
               DropdownButtonFormField<Project>(
-                value: _selectedProject,
+                initialValue: _selectedProject,
                 hint: const Text('Select a project'),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.folder_outlined, color: Color(0xFF6366F1)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(
+                    Icons.folder_outlined,
+                    color: Color(0xFF6366F1),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF6366F1),
+                      width: 2,
+                    ),
                   ),
                 ),
                 items: repo.projects
@@ -455,11 +482,19 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                     controller: _newTaskController,
                     decoration: InputDecoration(
                       hintText: 'Enter task name',
-                      prefixIcon: const Icon(Icons.task_alt, color: Color(0xFF6366F1)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(
+                        Icons.task_alt,
+                        color: Color(0xFF6366F1),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF6366F1),
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -476,16 +511,19 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                           _showError('Please enter a task name');
                           return;
                         }
-                        await repo.addTask(_newTaskController.text.trim(), _selectedProject!.id);
+                        final task = await repo.addTask(
+                          _newTaskController.text.trim(),
+                          _selectedProject!.id,
+                        );
                         setState(() {
-                          _selectedTaskId = repo.tasks.last.id;
+                          _selectedTaskId = task.id;
                           _creatingNewTask = false;
                           _newTaskController.clear();
                         });
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('✅ Task "${repo.tasks.last.name}" created'),
+                              content: Text('✅ Task "${task.name}" created'),
                               backgroundColor: const Color(0xFF10B981),
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -524,18 +562,31 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
               )
             else
               DropdownButtonFormField<String>(
-                value: _selectedTaskId,
+                initialValue: _selectedTaskId,
                 hint: const Text('Select a task'),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.task_outlined, color: Color(0xFF6366F1)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(
+                    Icons.task_outlined,
+                    color: Color(0xFF6366F1),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF6366F1),
+                      width: 2,
+                    ),
                   ),
                 ),
                 items: availableTasks
-                    .map((t) => DropdownMenuItem<String>(value: t.id, child: Text(t.name)))
+                    .map(
+                      (t) => DropdownMenuItem<String>(
+                        value: t.id,
+                        child: Text(t.name),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _selectedTaskId = v),
               ),
@@ -560,7 +611,9 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (picked != null) setState(() => _selectedStartDate = picked);
+                  if (picked != null) {
+                    setState(() => _selectedStartDate = picked);
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.all(14),
@@ -570,16 +623,31 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: Color(0xFF10B981), size: 18),
+                      const Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFF10B981),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Start Date', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            const Text(
+                              'Start Date',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
                             Text(
-                              DateFormat('MMM d, yyyy').format(_selectedStartDate),
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              DateFormat(
+                                'MMM d, yyyy',
+                              ).format(_selectedStartDate),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -631,16 +699,31 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: Color(0xFFEF4444), size: 18),
+                      const Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFFEF4444),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('End Date', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            const Text(
+                              'End Date',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
                             Text(
-                              DateFormat('MMM d, yyyy').format(_selectedEndDate),
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              DateFormat(
+                                'MMM d, yyyy',
+                              ).format(_selectedEndDate),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -669,19 +752,25 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
             ),
           ],
         ),
-        if (_computedHours != null && _computedHours! > 0) ...[ 
+        if (_computedHours != null && _computedHours! > 0) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF6366F1).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.timer_outlined, color: Color(0xFF6366F1), size: 18),
+                const Icon(
+                  Icons.timer_outlined,
+                  color: Color(0xFF6366F1),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Duration: ${_computedHours!.toStringAsFixed(1)} hours',
@@ -729,16 +818,19 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
               children: [
                 Icon(icon, color: hasTime ? color : Colors.grey, size: 18),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: hasTime ? color : Colors.grey,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: hasTime ? color : Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              hasTime ? time!.format(context) : 'Tap',
+              hasTime ? time.format(context) : 'Tap',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -756,9 +848,11 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
       value: _setReminder,
       onChanged: (v) => setState(() => _setReminder = v),
       title: const Text('Set reminder notifications'),
-      subtitle: const Text('Get notified 10 min before, 5 min before, and at start time'),
+      subtitle: const Text(
+        'Get notified 10 min before, 5 min before, and at start time',
+      ),
       secondary: const Icon(Icons.alarm, color: Color(0xFF6366F1)),
-      activeColor: const Color(0xFF6366F1),
+      activeThumbColor: const Color(0xFF6366F1),
     );
   }
 
@@ -769,25 +863,35 @@ class _UnifiedScheduleScreenState extends State<UnifiedScheduleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Notification Sound',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              'Notification Sound',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 12),
-            ...NotificationService.soundOptions.map((sound) {
-              return RadioListTile<String>(
-                value: sound.value,
-                groupValue: _selectedSound,
-                onChanged: (v) => setState(() => _selectedSound = v!),
-                title: Text(sound.label),
-                subtitle: Text(sound.description, style: const TextStyle(fontSize: 12)),
-                secondary: IconButton(
-                  icon: const Icon(Icons.play_circle_outline),
-                  color: const Color(0xFF6366F1),
-                  tooltip: 'Preview sound',
-                  onPressed: () => NotificationService.instance.previewSound(sound.value),
-                ),
-                activeColor: const Color(0xFF6366F1),
-              );
-            }),
+            RadioGroup<String>(
+              groupValue: _selectedSound,
+              onChanged: (v) => setState(() => _selectedSound = v ?? 'default'),
+              child: Column(
+                children: NotificationService.soundOptions.map((sound) {
+                  return RadioListTile<String>(
+                    value: sound.value,
+                    title: Text(sound.label),
+                    subtitle: Text(
+                      sound.description,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    secondary: IconButton(
+                      icon: const Icon(Icons.play_circle_outline),
+                      color: const Color(0xFF6366F1),
+                      tooltip: 'Preview sound',
+                      onPressed: () => NotificationService.instance
+                          .previewSound(sound.value),
+                    ),
+                    activeColor: const Color(0xFF6366F1),
+                  );
+                }).toList(),
+              ),
+            ),
           ],
         ),
       ),

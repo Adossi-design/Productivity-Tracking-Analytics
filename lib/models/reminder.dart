@@ -17,20 +17,21 @@ class Reminder {
   });
 
   Map<String, dynamic> toMap() => {
-        'projectId': projectId,
-        'projectName': projectName,
-        'scheduledTime': Timestamp.fromDate(scheduledTime),
-        'sound': sound,
-      };
+    'projectId': projectId,
+    'projectName': projectName,
+    'scheduledTime': Timestamp.fromDate(scheduledTime),
+    'sound': sound,
+  };
 
   factory Reminder.fromDoc(DocumentSnapshot doc) {
-    final d = doc.data() as Map<String, dynamic>;
+    final d = (doc.data() as Map<String, dynamic>?) ?? const {};
     return Reminder(
       id: doc.id,
-      projectId: d['projectId'] as String,
-      projectName: d['projectName'] as String,
-      scheduledTime: (d['scheduledTime'] as Timestamp).toDate(),
-      sound: d['sound'] as String? ?? 'default',
+      projectId: (d['projectId'] as String?) ?? '',
+      projectName: (d['projectName'] as String?) ?? '',
+      scheduledTime:
+          (d['scheduledTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      sound: (d['sound'] as String?) ?? 'default',
     );
   }
 }

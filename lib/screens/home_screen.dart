@@ -8,10 +8,12 @@ import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../models/time_entry.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/drawer_item.dart';
 import 'unified_schedule_screen.dart';
 import 'project_management_screen.dart';
 import 'task_management_screen.dart';
 import 'ml_insights_screen.dart';
+import 'insights_screen.dart';
 import 'dashboard_screen.dart';
 
 // All Time Entries screen - shows flat list or grouped by project
@@ -38,162 +40,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  // ── Quick-action: create project inline ───────────────────────────────────
-
-  void _showCreateProjectDialog(BuildContext context) {
-    final l = AppLocalizations.of(context)!;
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l.addProject,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: l.projectName,
-            prefixIcon:
-                const Icon(Icons.folder, color: Color(0xFF6366F1)),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFF6366F1), width: 2),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l.cancel)),
-          ElevatedButton(
-            onPressed: () {
-              if (ctrl.text.trim().isNotEmpty) {
-                context
-                    .read<ProductivityRepository>()
-                    .addProject(ctrl.text.trim());
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content:
-                      Text('Project "${ctrl.text.trim()}" created!'),
-                  backgroundColor: const Color(0xFF10B981),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ));
-              }
-            },
-            child: Text(l.add),
-          ),
-        ],
-      ),
-    ).whenComplete(ctrl.dispose);
-  }
-
-  // ── Quick-action: create task inline ─────────────────────────────────────
-
-  void _showCreateTaskDialog(BuildContext context) {
-    final l = AppLocalizations.of(context)!;
-    final repo = context.read<ProductivityRepository>();
-
-    if (repo.projects.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text(
-            'Create a project first before adding tasks.'),
-        backgroundColor: const Color(0xFFF59E0B),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10)),
-        action: SnackBarAction(
-          label: 'Create Project',
-          textColor: Colors.white,
-          onPressed: () => _showCreateProjectDialog(context),
-        ),
-      ));
-      return;
-    }
-
-    final ctrl = TextEditingController();
-    String? selectedProjectId = repo.projects.first.id;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: Text(l.addTask,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: l.taskName,
-                  prefixIcon: const Icon(Icons.task_alt,
-                      color: Color(0xFF6366F1)),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                        color: Color(0xFF6366F1), width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: selectedProjectId,
-                hint: Text(l.selectParentProject),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.folder_outlined,
-                      color: Color(0xFF6366F1)),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                        color: Color(0xFF6366F1), width: 2),
-                  ),
-                ),
-                items: repo.projects
-                    .map((p) => DropdownMenuItem(
-                        value: p.id, child: Text(p.name)))
-                    .toList(),
-                onChanged: (v) => setS(() => selectedProjectId = v),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l.cancel)),
-            ElevatedButton(
-              onPressed: () {
-                if (ctrl.text.trim().isNotEmpty &&
-                    selectedProjectId != null) {
-                  repo.addTask(ctrl.text.trim(), selectedProjectId!);
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content:
-                        Text('Task "${ctrl.text.trim()}" created!'),
-                    backgroundColor: const Color(0xFF10B981),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ));
-                }
-              },
-              child: Text(l.add),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(ctrl.dispose);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
@@ -218,11 +64,10 @@ class _HomeScreenState extends State<HomeScreen>
         actions: [
           Consumer<ProductivityRepository>(
             builder: (ctx, r, _) => IconButton(
-              icon: Icon(r.groupByProject
-                  ? Icons.view_list
-                  : Icons.folder_open),
-              tooltip:
-                  r.groupByProject ? l.listView : l.groupByProject,
+              icon: Icon(
+                r.groupByProject ? Icons.view_list : Icons.folder_open,
+              ),
+              tooltip: r.groupByProject ? l.listView : l.groupByProject,
               onPressed: r.toggleGroupByProject,
             ),
           ),
@@ -240,33 +85,33 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       body: repo.isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator(color: Color(0xFF6366F1)))
+              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+            )
           : repo.error != null
-              ? _ErrorView(
-                  error: repo.error!, onRetry: repo.reload)
-              : Column(
-                  children: [
-                    // ── Quick action bar ─────────────────────────────
-                    _QuickActionBar(
-                      onSchedule: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const UnifiedScheduleScreen()),
-                      ),
+          ? _ErrorView(error: repo.error!, onRetry: repo.reload)
+          : Column(
+              children: [
+                // ── Quick action bar ─────────────────────────────
+                _QuickActionBar(
+                  onSchedule: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UnifiedScheduleScreen(),
                     ),
-                    // ── Tab content ──────────────────────────────────
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: const [
-                          _TimeEntryListTab(),
-                          _ProjectAnalyticsTab(),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+                // ── Tab content ──────────────────────────────────
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: const [
+                      _TimeEntryListTab(),
+                      _ProjectAnalyticsTab(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -288,9 +133,9 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: isDark 
-                    ? [const Color(0xFF4F46E5), const Color(0xFF6366F1)]
-                    : [const Color(0xFF6366F1), const Color(0xFF818CF8)],
+                  colors: isDark
+                      ? [const Color(0xFF4F46E5), const Color(0xFF6366F1)]
+                      : [const Color(0xFF6366F1), const Color(0xFF818CF8)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -305,79 +150,123 @@ class _HomeScreenState extends State<HomeScreen>
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     'ML Time Tracker',
-                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
                     '${repo.entries.length} sessions tracked',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.dashboard_rounded,
               title: l.dashboard,
               isDark: isDark,
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
               },
             ),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.add_circle_outline_rounded,
               title: l.scheduleSession,
               isDark: isDark,
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const UnifiedScheduleScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const UnifiedScheduleScreen(),
+                  ),
+                );
               },
             ),
             Divider(height: 24, color: isDark ? Colors.white12 : null),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.list_alt_rounded,
               title: l.allTimeEntries,
               isDark: isDark,
               onTap: () => Navigator.pop(context),
             ),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.folder_rounded,
               title: l.projects,
               trailing: '${repo.projects.length}',
               isDark: isDark,
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectManagementScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProjectManagementScreen(),
+                  ),
+                );
               },
             ),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.task_alt_rounded,
               title: l.tasks,
               trailing: '${repo.tasks.length}',
               isDark: isDark,
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskManagementScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const TaskManagementScreen(),
+                  ),
+                );
               },
             ),
             Divider(height: 24, color: isDark ? Colors.white12 : null),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.auto_awesome_rounded,
               title: l.mlInsights,
               badge: repo.entries.length >= 5 ? 'NEW' : null,
               isDark: isDark,
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const MLInsightsScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MLInsightsScreen()),
+                );
+              },
+            ),
+            AppDrawerItem(
+              icon: Icons.insights_rounded,
+              title: l.insightsTitle,
+              isDark: isDark,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const InsightsScreen()),
+                );
               },
             ),
             Divider(height: 24, color: isDark ? Colors.white12 : null),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.settings_rounded,
               title: l.settings,
               isDark: isDark,
@@ -388,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               },
             ),
-            _DrawerItem(
+            AppDrawerItem(
               icon: Icons.help_outline_rounded,
               title: l.helpAndSupport,
               isDark: isDark,
@@ -402,26 +291,39 @@ class _HomeScreenState extends State<HomeScreen>
             const Divider(height: 24),
             SwitchListTile(
               secondary: Icon(
-                themeProvider.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                themeProvider.isDark
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
                 color: const Color(0xFF6366F1),
               ),
               title: Text(themeProvider.isDark ? l.darkMode : l.lightMode),
               value: themeProvider.isDark,
-              activeColor: const Color(0xFF6366F1),
+              activeThumbColor: const Color(0xFF6366F1),
               onChanged: (_) => themeProvider.toggle(),
             ),
             ListTile(
-              leading: const Icon(Icons.language_rounded, color: Color(0xFF6366F1)),
+              leading: const Icon(
+                Icons.language_rounded,
+                color: Color(0xFF6366F1),
+              ),
               title: Text(l.language),
               trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  localeProvider.locale.languageCode == 'en' ? '🇬🇧 EN' : '🇫🇷 FR',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  localeProvider.locale.languageCode == 'en'
+                      ? '🇬🇧 EN'
+                      : '🇫🇷 FR',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               onTap: () => localeProvider.toggle(),
@@ -430,7 +332,10 @@ class _HomeScreenState extends State<HomeScreen>
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
-              title: Text(l.signOut, style: const TextStyle(color: Color(0xFFEF4444))),
+              title: Text(
+                l.signOut,
+                style: const TextStyle(color: Color(0xFFEF4444)),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 await auth.signOut();
@@ -444,60 +349,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-class _DrawerItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? trailing;
-  final String? badge;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _DrawerItem({
-    required this.icon,
-    required this.title,
-    this.trailing,
-    this.badge,
-    this.isDark = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xFF6366F1), size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: isDark ? Colors.white : Colors.black87)),
-      trailing: badge != null
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(badge!, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-            )
-          : trailing != null
-              ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(trailing!, style: const TextStyle(color: Color(0xFF6366F1), fontSize: 12, fontWeight: FontWeight.bold)),
-                )
-              : null,
-      onTap: onTap,
-    );
-  }
-}
-
 // ── Quick action bar ───────────────────────────────────────────────────────
 
 class _QuickActionBar extends StatelessWidget {
   final VoidCallback onSchedule;
 
-  const _QuickActionBar({
-    required this.onSchedule,
-  });
+  const _QuickActionBar({required this.onSchedule});
 
   @override
   Widget build(BuildContext context) {
@@ -547,7 +404,8 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPermission = error.contains('permission') ||
+    final isPermission =
+        error.contains('permission') ||
         error.contains('PERMISSION_DENIED') ||
         error.contains('Missing or insufficient');
     return Center(
@@ -562,16 +420,18 @@ class _ErrorView extends StatelessWidget {
                 color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.cloud_off_rounded,
-                  size: 56, color: Color(0xFFEF4444)),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                size: 56,
+                color: Color(0xFFEF4444),
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               isPermission
                   ? 'Firestore Permission Denied'
                   : 'Failed to load data',
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -579,8 +439,7 @@ class _ErrorView extends StatelessWidget {
               isPermission
                   ? 'Go to Firebase Console → Firestore → Rules and allow authenticated users to read/write their own data.'
                   : error,
-              style: const TextStyle(
-                  fontSize: 13, color: Color(0xFF6B7280)),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
@@ -614,8 +473,7 @@ class _TimeEntryListTab extends StatelessWidget {
           );
         }
         if (repo.groupByProject) {
-          return _GroupedListView(
-              grouped: repo.timeEntriesGroupedByProject);
+          return _GroupedListView(grouped: repo.timeEntriesGroupedByProject);
         }
         return _FlatListView(entries: repo.entries.toList());
       },
@@ -651,10 +509,11 @@ class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String message;
   final String subtitle;
-  const _EmptyState(
-      {required this.icon,
-      required this.message,
-      required this.subtitle});
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -667,23 +526,23 @@ class _EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color:
-                    const Color(0xFF6366F1).withValues(alpha: 0.1),
+                color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child:
-                  Icon(icon, size: 64, color: const Color(0xFF6366F1)),
+              child: Icon(icon, size: 64, color: const Color(0xFF6366F1)),
             ),
             const SizedBox(height: 24),
-            Text(message,
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center),
+            Text(
+              message,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8),
-            Text(subtitle,
-                style: const TextStyle(
-                    fontSize: 14, color: Color(0xFF6B7280)),
-                textAlign: TextAlign.center),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -722,33 +581,34 @@ class _GroupedListView extends StatelessWidget {
       itemBuilder: (ctx, i) {
         final name = projectNames[i];
         final projectEntries = grouped[name]!;
-        final total =
-            projectEntries.fold(0.0, (s, e) => s + e.totalTime);
+        final total = projectEntries.fold(0.0, (s, e) => s + e.totalTime);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               margin: const EdgeInsets.only(bottom: 8, top: 8),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF6366F1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.folder,
-                      color: Colors.white, size: 18),
+                  const Icon(Icons.folder, color: Colors.white, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(name,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  Text('${total.toStringAsFixed(1)}h',
+                    child: Text(
+                      name,
                       style: const TextStyle(
-                          color: Colors.white70, fontSize: 13)),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${total.toStringAsFixed(1)}h',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
                 ],
               ),
             ),
@@ -772,8 +632,7 @@ class _EntryCard extends StatelessWidget {
     final l = AppLocalizations.of(context)!;
     final repo = context.read<ProductivityRepository>();
     // Check if this entry has scheduled start/end times
-    final hasSchedule =
-        entry.startTime != null && entry.endTime != null;
+    final hasSchedule = entry.startTime != null && entry.endTime != null;
 
     return Dismissible(
       key: Key(entry.id),
@@ -783,8 +642,9 @@ class _EntryCard extends StatelessWidget {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(12)),
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (_) async {
@@ -795,13 +655,16 @@ class _EntryCard extends StatelessWidget {
                 content: Text(l.deleteTimeEntryConfirm),
                 actions: [
                   TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(l.cancel)),
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l.cancel),
+                  ),
                   TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(l.delete,
-                          style:
-                              const TextStyle(color: Colors.red))),
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(
+                      l.delete,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
                 ],
               ),
             ) ??
@@ -810,9 +673,9 @@ class _EntryCard extends StatelessWidget {
       onDismissed: (_) => repo.deleteEntry(entry.id),
       child: Card(
         margin: const EdgeInsets.only(bottom: 10),
-        color: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF2D2D4A) 
-          : Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2D2D4A)
+            : Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -822,17 +685,17 @@ class _EntryCard extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1)
-                      .withValues(alpha: 0.1),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
                   child: Text(
                     '${entry.totalTime.toStringAsFixed(1)}h',
                     style: const TextStyle(
-                        color: Color(0xFF6366F1),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13),
+                      color: Color(0xFF6366F1),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
@@ -841,21 +704,32 @@ class _EntryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(entry.taskName,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87)),
+                    Text(
+                      entry.taskName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.folder_outlined,
-                            size: 13, color: Color(0xFF6366F1)),
+                        const Icon(
+                          Icons.folder_outlined,
+                          size: 13,
+                          color: Color(0xFF6366F1),
+                        ),
                         const SizedBox(width: 4),
-                        Text(entry.projectName,
-                            style: const TextStyle(
-                                color: Color(0xFF6366F1),
-                                fontSize: 12)),
+                        Text(
+                          entry.projectName,
+                          style: const TextStyle(
+                            color: Color(0xFF6366F1),
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                     // Show start/end time if available
@@ -863,27 +737,36 @@ class _EntryCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Row(
                         children: [
-                          const Icon(Icons.schedule,
-                              size: 12, color: Color(0xFF10B981)),
+                          const Icon(
+                            Icons.schedule,
+                            size: 12,
+                            color: Color(0xFF10B981),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${DateFormat('HH:mm').format(entry.startTime!)} – ${DateFormat('HH:mm').format(entry.endTime!)}',
                             style: const TextStyle(
-                                color: Color(0xFF10B981),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600),
+                              color: Color(0xFF10B981),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
                     ],
                     if (entry.notes.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(entry.notes,
-                          style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : const Color(0xFF6B7280),
-                              fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        entry.notes,
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white60
+                              : const Color(0xFF6B7280),
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ],
                 ),
@@ -891,9 +774,15 @@ class _EntryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(DateFormat('MMM d').format(entry.date),
-                      style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : const Color(0xFF6B7280), fontSize: 12)),
+                  Text(
+                    DateFormat('MMM d').format(entry.date),
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white60
+                          : const Color(0xFF6B7280),
+                      fontSize: 12,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   GestureDetector(
                     onTap: () async {
@@ -901,19 +790,19 @@ class _EntryCard extends StatelessWidget {
                         context: context,
                         builder: (_) => AlertDialog(
                           title: Text(l.deleteTimeEntry),
-                          content:
-                              Text(l.deleteTimeEntryPermanent),
+                          content: Text(l.deleteTimeEntryPermanent),
                           actions: [
                             TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, false),
-                                child: Text(l.cancel)),
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text(l.cancel),
+                            ),
                             TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, true),
-                                child: Text(l.delete,
-                                    style: const TextStyle(
-                                        color: Colors.red))),
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(
+                                l.delete,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -921,8 +810,11 @@ class _EntryCard extends StatelessWidget {
                         repo.deleteEntry(entry.id);
                       }
                     },
-                    child: const Icon(Icons.delete_outline,
-                        color: Color(0xFFEF4444), size: 20),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
                   ),
                 ],
               ),

@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/time_tracker_provider.dart';
+import '../services/forecast_service.dart';
 import '../services/ml_service.dart';
+import '../theme/app_colors.dart';
 
 class MLInsightsScreen extends StatelessWidget {
   const MLInsightsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final repo = context.watch<ProductivityRepository>();
     final entries = repo.entries;
 
     if (entries.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('ML Insights')),
-        body: const Center(child: Text('No data yet. Start logging time entries!')),
+        appBar: AppBar(title: Text(l.mlInsights)),
+        body: Center(child: Text(l.mlNoData)),
       );
     }
 
@@ -22,16 +26,20 @@ class MLInsightsScreen extends StatelessWidget {
     final anomalies = MLService.detectAnomalies(entries);
     final patterns = MLService.recognizePatterns(entries);
     final recommendations = MLService.generateRecommendations(entries);
+    final forecast = ForecastService.forecast(entries);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ML Insights'),
-        backgroundColor: Colors.deepPurple,
+        title: Text(l.mlInsights),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _ProductivityScoreCard(score: score),
+          const SizedBox(height: 16),
+          _ForecastCard(forecast: forecast),
           const SizedBox(height: 16),
           _AnomaliesCard(anomalies: anomalies),
           const SizedBox(height: 16),
@@ -54,6 +62,7 @@ class _ProductivityScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       child: Padding(
@@ -63,9 +72,15 @@ class _ProductivityScoreCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.analytics, color: Colors.deepPurple),
+                const Icon(Icons.analytics, color: AppColors.primary),
                 const SizedBox(width: 8),
-                const Text('Productivity Score', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  l.productivityScore,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -81,32 +96,43 @@ class _ProductivityScoreCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    _scoreLabel(score.overall),
+                    _scoreLabel(l, score.overall),
                     style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            _ScoreBar(label: 'Volume', score: score.volume),
-            _ScoreBar(label: 'Consistency', score: score.consistency),
-            _ScoreBar(label: 'Focus', score: score.focus),
-            _ScoreBar(label: 'Balance', score: score.balance),
-            _ScoreBar(label: 'Efficiency', score: score.efficiency),
+            _ScoreBar(label: l.scoreVolume, score: score.volume),
+            _ScoreBar(label: l.scoreConsistency, score: score.consistency),
+            _ScoreBar(label: l.scoreFocus, score: score.focus),
+            _ScoreBar(label: l.scoreBalance, score: score.balance),
+            _ScoreBar(label: l.scoreEfficiency, score: score.efficiency),
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 8),
-            ...score.insights.map((insight) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.lightbulb_outline, size: 16, color: Colors.amber),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(insight, style: const TextStyle(fontSize: 13))),
-                ],
+            ...score.insights.map(
+              (insight) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.lightbulb_outline,
+                      size: 16,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        insight,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),
@@ -119,11 +145,193 @@ class _ProductivityScoreCard extends StatelessWidget {
     return Colors.red;
   }
 
-  String _scoreLabel(int score) {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    if (score >= 40) return 'Fair';
-    return 'Needs Improvement';
+  String _scoreLabel(AppLocalizations l, int score) {
+    if (score >= 80) return l.scoreExcellent;
+    if (score >= 60) return l.scoreGood;
+    if (score >= 40) return l.scoreFair;
+    return l.scoreNeedsImprovement;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FORECAST CARD (supervised regression)
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _ForecastCard extends StatelessWidget {
+  final ProductivityForecast? forecast;
+  const _ForecastCard({required this.forecast});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final f = forecast;
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.show_chart, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  l.forecastTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (f != null) ...[const Spacer(), _TrendChip(trend: f.trend)],
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (f == null)
+              Text(
+                l.forecastInsufficient,
+                style: const TextStyle(color: Colors.grey),
+              )
+            else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _ForecastStat(
+                      label: l.forecastNextDay,
+                      value: '${f.nextDayHours.toStringAsFixed(1)}h',
+                    ),
+                  ),
+                  Expanded(
+                    child: _ForecastStat(
+                      label: l.forecastNext7Days,
+                      value: '${f.next7DaysHours.toStringAsFixed(1)}h',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                l.modelAccuracy,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _Metric(name: 'MAE', value: '${f.mae.toStringAsFixed(2)}h'),
+                  _Metric(name: 'RMSE', value: '${f.rmse.toStringAsFixed(2)}h'),
+                  _Metric(name: 'R²', value: f.r2.toStringAsFixed(2)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l.forecastValidation(f.trainDays, f.testDays),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrendChip extends StatelessWidget {
+  final String trend;
+  const _TrendChip({required this.trend});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final (IconData icon, Color color, String label) = switch (trend) {
+      'increasing' => (Icons.trending_up, AppColors.success, l.trendIncreasing),
+      'decreasing' => (
+        Icons.trending_down,
+        AppColors.danger,
+        l.trendDecreasing,
+      ),
+      _ => (Icons.trending_flat, AppColors.textMuted, l.trendStable),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ForecastStat extends StatelessWidget {
+  final String label;
+  final String value;
+  const _ForecastStat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
+      ],
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String name;
+  final String value;
+  const _Metric({required this.name, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          name,
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        ),
+      ],
+    );
   }
 }
 
@@ -143,14 +351,24 @@ class _ScoreBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label, style: const TextStyle(fontSize: 14)),
-              Text('$score', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(
+                '$score',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           LinearProgressIndicator(
             value: score / 100,
             backgroundColor: Colors.grey[300],
-            color: score >= 70 ? Colors.green : score >= 50 ? Colors.orange : Colors.red,
+            color: score >= 70
+                ? Colors.green
+                : score >= 50
+                ? Colors.orange
+                : Colors.red,
             minHeight: 8,
           ),
         ],
@@ -169,6 +387,7 @@ class _AnomaliesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       child: Padding(
@@ -180,12 +399,18 @@ class _AnomaliesCard extends StatelessWidget {
               children: [
                 const Icon(Icons.warning_amber, color: Colors.orange),
                 const SizedBox(width: 8),
-                const Text('Anomaly Detection', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  l.anomalyDetection,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             if (anomalies.isEmpty)
-              const Text('No anomalies detected - your work patterns are consistent!', style: TextStyle(color: Colors.green))
+              Text(l.noAnomalies, style: const TextStyle(color: Colors.green))
             else
               ...anomalies.take(5).map((a) => _AnomalyTile(anomaly: a)),
           ],
@@ -207,20 +432,23 @@ class _AnomalyTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: _severityColor(anomaly.severity).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _severityColor(anomaly.severity).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: _severityColor(anomaly.severity).withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
-          Icon(_anomalyIcon(anomaly.type), color: _severityColor(anomaly.severity), size: 20),
+          Icon(
+            _anomalyIcon(anomaly.type),
+            color: _severityColor(anomaly.severity),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  anomaly.message,
-                  style: const TextStyle(fontSize: 13),
-                ),
+                Text(anomaly.message, style: const TextStyle(fontSize: 13)),
                 const SizedBox(height: 4),
                 Text(
                   _formatDate(anomaly.date),
@@ -236,19 +464,27 @@ class _AnomalyTile extends StatelessWidget {
 
   Color _severityColor(String severity) {
     switch (severity) {
-      case 'high': return Colors.red;
-      case 'medium': return Colors.orange;
-      case 'low': return Colors.blue;
-      default: return Colors.grey;
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.blue;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _anomalyIcon(AnomalyType type) {
     switch (type) {
-      case AnomalyType.unusualHours: return Icons.access_time;
-      case AnomalyType.unusualTime: return Icons.nightlight;
-      case AnomalyType.longGap: return Icons.event_busy;
-      case AnomalyType.weekendWork: return Icons.weekend;
+      case AnomalyType.unusualHours:
+        return Icons.access_time;
+      case AnomalyType.unusualTime:
+        return Icons.nightlight;
+      case AnomalyType.longGap:
+        return Icons.event_busy;
+      case AnomalyType.weekendWork:
+        return Icons.weekend;
     }
   }
 
@@ -267,6 +503,7 @@ class _PatternsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       child: Padding(
@@ -278,12 +515,18 @@ class _PatternsCard extends StatelessWidget {
               children: [
                 const Icon(Icons.psychology, color: Colors.blue),
                 const SizedBox(width: 8),
-                const Text('Pattern Recognition', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  l.patternRecognition,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             if (patterns.isEmpty)
-              const Text('Not enough data to detect patterns yet', style: TextStyle(color: Colors.grey))
+              Text(l.noPatterns, style: const TextStyle(color: Colors.grey))
             else
               ...patterns.map((p) => _PatternTile(pattern: p)),
           ],
@@ -305,11 +548,17 @@ class _PatternTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: _impactColor(pattern.impact).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _impactColor(pattern.impact).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: _impactColor(pattern.impact).withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
-          Icon(_patternIcon(pattern.type), color: _impactColor(pattern.impact), size: 20),
+          Icon(
+            _patternIcon(pattern.type),
+            color: _impactColor(pattern.impact),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -320,19 +569,25 @@ class _PatternTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Confidence: ${(pattern.confidence * 100).toInt()}%',
+                      '${AppLocalizations.of(context)!.confidenceLabel}: ${(pattern.confidence * 100).toInt()}%',
                       style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                     const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: _impactColor(pattern.impact),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         pattern.impact,
-                        style: const TextStyle(fontSize: 10, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -347,20 +602,29 @@ class _PatternTile extends StatelessWidget {
 
   Color _impactColor(String impact) {
     switch (impact) {
-      case 'positive': return Colors.green;
-      case 'negative': return Colors.red;
-      case 'neutral': return Colors.blue;
-      default: return Colors.grey;
+      case 'positive':
+        return Colors.green;
+      case 'negative':
+        return Colors.red;
+      case 'neutral':
+        return Colors.blue;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _patternIcon(PatternType type) {
     switch (type) {
-      case PatternType.taskSequence: return Icons.swap_horiz;
-      case PatternType.dayOfWeek: return Icons.calendar_today;
-      case PatternType.breaks: return Icons.coffee;
-      case PatternType.taskSwitching: return Icons.shuffle;
-      case PatternType.timeOfDay: return Icons.schedule;
+      case PatternType.taskSequence:
+        return Icons.swap_horiz;
+      case PatternType.dayOfWeek:
+        return Icons.calendar_today;
+      case PatternType.breaks:
+        return Icons.coffee;
+      case PatternType.taskSwitching:
+        return Icons.shuffle;
+      case PatternType.timeOfDay:
+        return Icons.schedule;
     }
   }
 }
@@ -375,6 +639,7 @@ class _RecommendationsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Card(
       elevation: 4,
       child: Padding(
@@ -386,14 +651,25 @@ class _RecommendationsCard extends StatelessWidget {
               children: [
                 const Icon(Icons.recommend, color: Colors.teal),
                 const SizedBox(width: 8),
-                const Text('Recommendations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  l.recommendations,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             if (recommendations.isEmpty)
-              const Text('No recommendations at this time', style: TextStyle(color: Colors.grey))
+              Text(
+                l.noRecommendations,
+                style: const TextStyle(color: Colors.grey),
+              )
             else
-              ...recommendations.map((r) => _RecommendationTile(recommendation: r)),
+              ...recommendations.map(
+                (r) => _RecommendationTile(recommendation: r),
+              ),
           ],
         ),
       ),
@@ -413,19 +689,28 @@ class _RecommendationTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: _priorityColor(recommendation.priority).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _priorityColor(recommendation.priority).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: _priorityColor(recommendation.priority).withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(_recommendationIcon(recommendation.type), color: _priorityColor(recommendation.priority), size: 20),
+              Icon(
+                _recommendationIcon(recommendation.type),
+                color: _priorityColor(recommendation.priority),
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   recommendation.title,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Container(
@@ -436,13 +721,20 @@ class _RecommendationTile extends StatelessWidget {
                 ),
                 child: Text(
                   recommendation.priority.toUpperCase(),
-                  style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(recommendation.description, style: const TextStyle(fontSize: 13)),
+          Text(
+            recommendation.description,
+            style: const TextStyle(fontSize: 13),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -450,7 +742,11 @@ class _RecommendationTile extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 recommendation.expectedImpact,
-                style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.green,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -461,20 +757,29 @@ class _RecommendationTile extends StatelessWidget {
 
   Color _priorityColor(String priority) {
     switch (priority) {
-      case 'high': return Colors.red;
-      case 'medium': return Colors.orange;
-      case 'low': return Colors.blue;
-      default: return Colors.grey;
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.blue;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _recommendationIcon(RecommendationType type) {
     switch (type) {
-      case RecommendationType.scheduling: return Icons.schedule;
-      case RecommendationType.focus: return Icons.center_focus_strong;
-      case RecommendationType.breaks: return Icons.free_breakfast;
-      case RecommendationType.balance: return Icons.balance;
-      case RecommendationType.consistency: return Icons.repeat;
+      case RecommendationType.scheduling:
+        return Icons.schedule;
+      case RecommendationType.focus:
+        return Icons.center_focus_strong;
+      case RecommendationType.breaks:
+        return Icons.free_breakfast;
+      case RecommendationType.balance:
+        return Icons.balance;
+      case RecommendationType.consistency:
+        return Icons.repeat;
     }
   }
 }

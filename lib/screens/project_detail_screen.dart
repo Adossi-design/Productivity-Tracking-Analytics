@@ -32,8 +32,9 @@ class ProjectDetailScreen extends StatelessWidget {
         builder: (ctx, repo, _) {
           final tasks = repo.tasksForProject(project.id);
           final reminders = repo.remindersForProject(project.id);
-          final entryCount =
-              repo.entries.where((e) => e.projectName == project.name).length;
+          final entryCount = repo.entries
+              .where((e) => e.projectName == project.name)
+              .length;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -68,15 +69,17 @@ class ProjectDetailScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Tasks',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Tasks',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   TextButton.icon(
                     onPressed: () => _showAddTaskDialog(context, l, repo),
                     icon: const Icon(Icons.add, size: 18),
                     label: Text(l.addTask),
                     style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF6366F1)),
+                      foregroundColor: const Color(0xFF6366F1),
+                    ),
                   ),
                 ],
               ),
@@ -88,45 +91,55 @@ class ProjectDetailScreen extends StatelessWidget {
                   subtitle: 'Tap "Add Task" to create one',
                 )
               else
-                ...tasks.map((task) => Dismissible(
-                      key: Key(task.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(12)),
-                        child:
-                            const Icon(Icons.delete, color: Colors.white),
+                ...tasks.map(
+                  (task) => Dismissible(
+                    key: Key(task.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      onDismissed: (_) => repo.deleteTask(task.id),
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981)
-                                  .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.task_alt,
-                                color: Color(0xFF10B981), size: 18),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    onDismissed: (_) => repo.deleteTask(task.id),
+                    child: Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF10B981,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          title: Text(task.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600)),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                color: Color(0xFFEF4444), size: 20),
-                            onPressed: () => repo.deleteTask(task.id),
+                          child: const Icon(
+                            Icons.task_alt,
+                            color: Color(0xFF10B981),
+                            size: 18,
                           ),
                         ),
+                        title: Text(
+                          task.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Color(0xFFEF4444),
+                            size: 20,
+                          ),
+                          onPressed: () => repo.deleteTask(task.id),
+                        ),
                       ),
-                    )),
+                    ),
+                  ),
+                ),
 
               // ── Reminders section ─────────────────────────────────────
               if (!kIsWeb) ...[
@@ -134,30 +147,37 @@ class ProjectDetailScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Reminders',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Reminders',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     TextButton.icon(
                       onPressed: () => _showReminderDialog(context, l),
                       icon: const Icon(Icons.alarm_add, size: 18),
                       label: const Text('Add Reminder'),
                       style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF6366F1)),
+                        foregroundColor: const Color(0xFF6366F1),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 if (reminders.isEmpty)
-                const _EmptySection(
-                  icon: Icons.alarm_off,
-                  message: 'No reminders set',
-                  subtitle: 'Tap "Add Reminder" to schedule one',
-                )
+                  const _EmptySection(
+                    icon: Icons.alarm_off,
+                    message: 'No reminders set',
+                    subtitle: 'Tap "Add Reminder" to schedule one',
+                  )
                 else
-                  ...reminders.map((r) => _ReminderCard(
-                        reminder: r,
-                        onDelete: () => repo.cancelReminder(r.id),
-                      )),
+                  ...reminders.map(
+                    (r) => _ReminderCard(
+                      reminder: r,
+                      onDelete: () => repo.cancelReminder(r.id),
+                    ),
+                  ),
               ],
             ],
           );
@@ -169,33 +189,36 @@ class ProjectDetailScreen extends StatelessWidget {
   // ── Add task dialog ────────────────────────────────────────────────────────
 
   void _showAddTaskDialog(
-      BuildContext context, AppLocalizations l, ProductivityRepository repo) {
+    BuildContext context,
+    AppLocalizations l,
+    ProductivityRepository repo,
+  ) {
     final ctrl = TextEditingController();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(l.addTask,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          l.addTask,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
             hintText: l.taskName,
-            prefixIcon:
-                const Icon(Icons.task_alt, color: Color(0xFF6366F1)),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            prefixIcon: const Icon(Icons.task_alt, color: Color(0xFF6366F1)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l.cancel)),
+            onPressed: () => Navigator.pop(context),
+            child: Text(l.cancel),
+          ),
           ElevatedButton(
             onPressed: () {
               if (ctrl.text.trim().isNotEmpty) {
@@ -220,16 +243,19 @@ class ProjectDetailScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: const Text('Set Reminder',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Set Reminder',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Date & time picker
-              const Text('Date & Time',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13)),
+              const Text(
+                'Date & Time',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
               const SizedBox(height: 8),
               InkWell(
                 onTap: () async {
@@ -237,12 +263,12 @@ class ProjectDetailScreen extends StatelessWidget {
                     context: ctx,
                     initialDate: selectedDate,
                     firstDate: DateTime.now(),
-                    lastDate:
-                        DateTime.now().add(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                     builder: (c, child) => Theme(
                       data: Theme.of(c).copyWith(
                         colorScheme: const ColorScheme.light(
-                            primary: Color(0xFF6366F1)),
+                          primary: Color(0xFF6366F1),
+                        ),
                       ),
                       child: child!,
                     ),
@@ -255,25 +281,34 @@ class ProjectDetailScreen extends StatelessWidget {
                   );
                   if (time == null) return;
                   setState(() {
-                    selectedDate = DateTime(date.year, date.month,
-                        date.day, time.hour, time.minute);
+                    selectedDate = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      time.hour,
+                      time.minute,
+                    );
                   });
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: const Color(0xFF6366F1)),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today,
-                          color: Color(0xFF6366F1), size: 18),
+                      const Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFF6366F1),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        DateFormat('MMM d, yyyy – HH:mm')
-                            .format(selectedDate),
+                        DateFormat('MMM d, yyyy – HH:mm').format(selectedDate),
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -283,28 +318,37 @@ class ProjectDetailScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Sound picker
-              const Text('Alert Sound',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13)),
+              const Text(
+                'Alert Sound',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: selectedSound,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.music_note,
-                      color: Color(0xFF6366F1)),
+                  prefixIcon: const Icon(
+                    Icons.music_note,
+                    color: Color(0xFF6366F1),
+                  ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: Color(0xFF6366F1), width: 2),
+                      color: Color(0xFF6366F1),
+                      width: 2,
+                    ),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
                 items: NotificationService.soundOptions
-                    .map((s) => DropdownMenuItem(
-                        value: s.value, child: Text(s.label)))
+                    .map(
+                      (s) => DropdownMenuItem(
+                        value: s.value,
+                        child: Text(s.label),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) =>
                     setState(() => selectedSound = v ?? 'default'),
@@ -318,14 +362,19 @@ class ProjectDetailScreen extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline,
-                        size: 14, color: Color(0xFF6366F1)),
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: Color(0xFF6366F1),
+                    ),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'You\'ll be notified 10 min before, 5 min before, and at the exact time.',
                         style: TextStyle(
-                            fontSize: 11, color: Color(0xFF6366F1)),
+                          fontSize: 11,
+                          color: Color(0xFF6366F1),
+                        ),
                       ),
                     ),
                   ],
@@ -335,13 +384,13 @@ class ProjectDetailScreen extends StatelessWidget {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l.cancel)),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.cancel),
+            ),
             ElevatedButton.icon(
               onPressed: () async {
                 Navigator.pop(ctx);
-                final repo =
-                    context.read<ProductivityRepository>();
+                final repo = context.read<ProductivityRepository>();
                 await repo.addReminder(
                   projectId: project.id,
                   projectName: project.name,
@@ -352,11 +401,13 @@ class ProjectDetailScreen extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Reminder set for ${DateFormat('MMM d – HH:mm').format(selectedDate)}'),
+                        'Reminder set for ${DateFormat('MMM d – HH:mm').format(selectedDate)}',
+                      ),
                       backgroundColor: const Color(0xFF10B981),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   );
                 }
@@ -388,27 +439,34 @@ class _ReminderCard extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: (isPast ? Colors.grey : const Color(0xFFF59E0B))
-                .withValues(alpha: 0.15),
+            color: (isPast ? Colors.grey : const Color(0xFFF59E0B)).withValues(
+              alpha: 0.15,
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(isPast ? Icons.alarm_off : Icons.alarm,
-              color: isPast ? Colors.grey : const Color(0xFFF59E0B),
-              size: 18),
+          child: Icon(
+            isPast ? Icons.alarm_off : Icons.alarm,
+            color: isPast ? Colors.grey : const Color(0xFFF59E0B),
+            size: 18,
+          ),
         ),
         title: Text(
           DateFormat('MMM d, yyyy – HH:mm').format(reminder.scheduledTime),
           style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: isPast ? Colors.grey : null),
+            fontWeight: FontWeight.w600,
+            color: isPast ? Colors.grey : null,
+          ),
         ),
         subtitle: Text(
           isPast ? 'Passed · ${reminder.sound}' : reminder.sound,
           style: const TextStyle(fontSize: 12),
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.delete_outline,
-              color: Color(0xFFEF4444), size: 20),
+          icon: const Icon(
+            Icons.delete_outline,
+            color: Color(0xFFEF4444),
+            size: 20,
+          ),
           onPressed: onDelete,
         ),
       ),
@@ -422,8 +480,11 @@ class _StatChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  const _StatChip(
-      {required this.icon, required this.label, required this.color});
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -438,9 +499,14 @@ class _StatChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -451,18 +517,20 @@ class _EmptySection extends StatelessWidget {
   final IconData icon;
   final String message;
   final String subtitle;
-  const _EmptySection(
-      {required this.icon,
-      required this.message,
-      required this.subtitle});
+  const _EmptySection({
+    required this.icon,
+    required this.message,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest
-            .withValues(alpha: 0.4),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -472,11 +540,14 @@ class _EmptySection extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(message,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text(subtitle,
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF6B7280))),
+              Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              ),
             ],
           ),
         ],

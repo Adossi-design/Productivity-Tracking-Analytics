@@ -13,7 +13,7 @@ class Project {
       Project(id: map['id'] as String, name: map['name'] as String);
 
   factory Project.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Project(id: doc.id, name: data['name'] as String);
+    final data = (doc.data() as Map<String, dynamic>?) ?? const {};
+    return Project(id: doc.id, name: (data['name'] as String?) ?? 'Untitled');
   }
 }

@@ -19,14 +19,33 @@ jobs:
           channel: stable
           cache: true
 
+      # Formatting is checked on the committed sources before anything is
+      # generated, so generated/stub files can't affect the result.
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate localizations
-        run: flutter gen-l10n
+      # firebase_options.dart holds environment-specific config and is
+      # intentionally git-ignored. CI only needs the symbols to exist so the
+      # app compiles for analysis and tests (no Firebase call is made in tests),
+      # so we write a throwaway stub here. Real values come from
+      # `flutterfire configure` locally.
+      - name: Provision Firebase config stub
+        run: |
+          cat > lib/firebase_options.dart <<'DART'
+          import 'package:firebase_core/firebase_core.dart';
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+          class DefaultFirebaseOptions {
+            static FirebaseOptions get currentPlatform => const FirebaseOptions(
+              apiKey: 'ci-stub',
+              appId: 'ci-stub',
+              messagingSenderId: 'ci-stub',
+              projectId: 'ci-stub',
+            );
+          }
+          DART
 
       - name: Analyze
         run: flutter analyze

@@ -49,28 +49,33 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showError(String msg) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(msg),
-        backgroundColor: const Color(0xFFEF4444),
-        behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 4),
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
   }
 
   void _goToSignUp() {
-    Navigator.of(context).push(PageRouteBuilder(
-      pageBuilder: (_, __, ___) => const SignUpScreen(),
-      transitionsBuilder: (_, anim, __, child) => SlideTransition(
-        position: Tween<Offset>(
-                begin: const Offset(1, 0), end: Offset.zero)
-            .animate(
-                CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-        child: child,
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const SignUpScreen(),
+        transitionsBuilder: (_, anim, __, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 300),
       ),
-      transitionDuration: const Duration(milliseconds: 300),
-    ));
+    );
   }
 
   @override
@@ -85,8 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
@@ -101,30 +105,36 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 72,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6366F1),
-                                Color(0xFF818CF8)
-                              ],
+                              colors: [Color(0xFF6366F1), Color(0xFF818CF8)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(Icons.access_time_rounded,
-                              size: 38, color: Colors.white),
+                          child: const Icon(
+                            Icons.access_time_rounded,
+                            size: 38,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 20),
-                        Text(l.welcomeBack,
-                            style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold)),
+                        Text(
+                          l.welcomeBack,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 6),
-                        Text(l.signIn,
-                            style: TextStyle(
-                                fontSize: 15,
-                                color: isDark
-                                    ? Colors.white54
-                                    : Colors.grey.shade600)),
+                        Text(
+                          l.signIn,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isDark
+                                ? Colors.white54
+                                : Colors.grey.shade600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -141,10 +151,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           label: l.email,
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (v) =>
-                              (v == null || !v.contains('@'))
-                                  ? l.enterEmail
-                                  : null,
+                          validator: (v) => (v == null || !v.contains('@'))
+                              ? l.enterEmail
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         AuthField(
@@ -154,16 +163,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           icon: Icons.lock_outline,
                           obscure: _obscure,
                           suffixIcon: IconButton(
-                            icon: Icon(_obscure
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined),
+                            icon: Icon(
+                              _obscure
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
                             onPressed: () =>
                                 setState(() => _obscure = !_obscure),
                           ),
-                          validator: (v) =>
-                              (v == null || v.length < 6)
-                                  ? l.enterPassword
-                                  : null,
+                          validator: (v) => (v == null || v.length < 6)
+                              ? l.enterPassword
+                              : null,
                         ),
                       ],
                     ),
@@ -194,18 +204,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(l.noAccount,
-                            style: TextStyle(
-                                color: isDark
-                                    ? Colors.white54
-                                    : Colors.grey.shade600)),
+                        Text(
+                          l.noAccount,
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white54
+                                : Colors.grey.shade600,
+                          ),
+                        ),
                         const SizedBox(width: 4),
                         GestureDetector(
                           onTap: _goToSignUp,
-                          child: Text(l.signUp,
-                              style: const TextStyle(
-                                  color: Color(0xFF6366F1),
-                                  fontWeight: FontWeight.bold)),
+                          child: Text(
+                            l.signUp,
+                            style: const TextStyle(
+                              color: Color(0xFF6366F1),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -255,20 +271,18 @@ class AuthField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon:
-            Icon(icon, color: const Color(0xFF6366F1), size: 20),
+        prefixIcon: Icon(icon, color: const Color(0xFF6366F1), size: 20),
         suffixIcon: suffixIcon,
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-              color: isDark ? Colors.white24 : Colors.grey.shade300),
+            color: isDark ? Colors.white24 : Colors.grey.shade300,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF6366F1), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -276,8 +290,7 @@ class AuthField extends StatelessWidget {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFFEF4444), width: 2),
+          borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
         ),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
@@ -310,18 +323,25 @@ class AuthPrimaryButton extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: isLoading
             ? const SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5),
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
               )
-            : Text(label,
+            : Text(
+                label,
                 style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
@@ -349,9 +369,11 @@ class AuthGoogleButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+            borderRadius: BorderRadius.circular(12),
+          ),
           side: BorderSide(
-              color: isDark ? Colors.white24 : Colors.grey.shade300),
+            color: isDark ? Colors.white24 : Colors.grey.shade300,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -364,21 +386,25 @@ class AuthGoogleButton extends StatelessWidget {
                 color: Color(0xFF6366F1),
               ),
               child: const Center(
-                child: Text('G',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
+                child: Text(
+                  'G',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 15,
-                    color: isDark
-                        ? Colors.white
-                        : Colors.grey.shade800,
-                    fontWeight: FontWeight.w500)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? Colors.white : Colors.grey.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
@@ -395,21 +421,23 @@ class AuthOrDivider extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-            child: Divider(
-                color: isDark ? Colors.white12 : Colors.grey.shade300)),
+          child: Divider(color: isDark ? Colors.white12 : Colors.grey.shade300),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('OR',
-              style: TextStyle(
-                  fontSize: 12,
-                  color:
-                      isDark ? Colors.white38 : Colors.grey.shade500,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1)),
+          child: Text(
+            'OR',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white38 : Colors.grey.shade500,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+            ),
+          ),
         ),
         Expanded(
-            child: Divider(
-                color: isDark ? Colors.white12 : Colors.grey.shade300)),
+          child: Divider(color: isDark ? Colors.white12 : Colors.grey.shade300),
+        ),
       ],
     );
   }

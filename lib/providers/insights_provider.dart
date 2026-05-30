@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../config/ml_config.dart';
 import '../models/time_entry.dart';
+import '../theme/app_colors.dart';
 
 // K-Means clustering result for work session analysis
 class SessionCluster {
@@ -16,8 +18,7 @@ class SessionCluster {
     required this.centroid,
   });
 
-  double get totalHours =>
-      entries.fold(0.0, (sum, e) => sum + e.totalTime);
+  double get totalHours => entries.fold(0.0, (sum, e) => sum + e.totalTime);
 }
 
 // Comprehensive productivity analytics from time entries
@@ -31,6 +32,11 @@ class ProductivityInsights {
   final Map<String, double> last7DaysActivity;
   final List<SessionCluster> clusters;
 
+  /// Mean silhouette coefficient of the K-Means clustering, in [-1, 1].
+  /// Higher means tighter, better-separated clusters. Lets the UI report how
+  /// trustworthy the session groupings are instead of presenting them blindly.
+  final double silhouetteScore;
+
   ProductivityInsights({
     required this.totalHours,
     required this.avgHoursPerDay,
@@ -40,7 +46,17 @@ class ProductivityInsights {
     required this.hoursPerProject,
     required this.last7DaysActivity,
     required this.clusters,
+    required this.silhouetteScore,
   });
+
+  /// Human-readable quality label for [silhouetteScore].
+  String get clusterQuality {
+    if (clusters.length < 2) return 'N/A';
+    if (silhouetteScore >= 0.7) return 'Strong';
+    if (silhouetteScore >= 0.5) return 'Reasonable';
+    if (silhouetteScore >= 0.25) return 'Weak';
+    return 'Poor';
+  }
 }
 
 // Analyzes time entries using K-Means clustering and statistical analysis
@@ -51,9 +67,27 @@ class InsightsProvider extends ChangeNotifier {
   ProductivityInsights? get insights => _insights;
   bool get hasEnoughData => _hasEnoughData;
 
-  static const int _minEntries = 5;
+  static const int _minEntries = MLConfig.minEntriesForInsights;
+
+  /// Signature of the last dataset we computed for. Lets [compute] no-op when
+  /// called repeatedly with unchanged data — important because screens trigger
+  /// it from post-frame callbacks, which would otherwise re-run K-Means (and
+  /// notify, causing more rebuilds) on every single frame.
+  String? _lastSignature;
+
+  String _signatureOf(List<TimeEntry> entries) {
+    final buf = StringBuffer('${entries.length}');
+    for (final e in entries) {
+      buf.write('|${e.id}:${e.totalTime}');
+    }
+    return buf.toString();
+  }
 
   void compute(List<TimeEntry> entries) {
+    final signature = _signatureOf(entries);
+    if (signature == _lastSignature) return; // nothing changed; skip work
+    _lastSignature = signature;
+
     if (entries.length < _minEntries) {
       _hasEnoughData = false;
       _insights = null;
@@ -65,10 +99,10 @@ class InsightsProvider extends ChangeNotifier {
 
     final totalHours = entries.fold(0.0, (s, e) => s + e.totalTime);
 
-    final activeDays =
-        entries.map((e) => _dayKey(e.date)).toSet();
-    final avgHoursPerDay =
-        activeDays.isEmpty ? 0.0 : totalHours / activeDays.length;
+    final activeDays = entries.map((e) => _dayKey(e.date)).toSet();
+    final avgHoursPerDay = activeDays.isEmpty
+        ? 0.0
+        : totalHours / activeDays.length;
 
     final dayTotals = <String, double>{};
     for (final e in entries) {
@@ -91,7 +125,9 @@ class InsightsProvider extends ChangeNotifier {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     final hoursThisWeek = entries
-        .where((e) => e.date.isAfter(weekStart.subtract(const Duration(days: 1))))
+        .where(
+          (e) => e.date.isAfter(weekStart.subtract(const Duration(days: 1))),
+        )
         .fold(0.0, (s, e) => s + e.totalTime);
 
     final last7DaysActivity = <String, double>{};
@@ -107,7 +143,8 @@ class InsightsProvider extends ChangeNotifier {
       }
     }
 
-    final clusters = _kMeans(entries, k: 3);
+    final clusters = _kMeans(entries, k: MLConfig.clusterCount);
+    final silhouette = _silhouetteScore(clusters);
 
     _insights = ProductivityInsights(
       totalHours: totalHours,
@@ -118,9 +155,51 @@ class InsightsProvider extends ChangeNotifier {
       hoursPerProject: hoursPerProject,
       last7DaysActivity: last7DaysActivity,
       clusters: clusters,
+      silhouetteScore: silhouette,
     );
 
     notifyListeners();
+  }
+
+  /// Mean silhouette coefficient over all points (1-D durations).
+  ///
+  /// For each point: a = mean distance to other points in its own cluster,
+  /// b = lowest mean distance to points of any other cluster, and the
+  /// coefficient is (b - a) / max(a, b). Returns 0 when it can't be defined
+  /// (fewer than two non-empty clusters).
+  double _silhouetteScore(List<SessionCluster> clusters) {
+    final populated = clusters.where((c) => c.entries.isNotEmpty).toList();
+    if (populated.length < 2) return 0.0;
+
+    final values = populated
+        .map((c) => c.entries.map((e) => e.totalTime).toList())
+        .toList();
+
+    double totalScore = 0;
+    int count = 0;
+    for (int ci = 0; ci < values.length; ci++) {
+      final own = values[ci];
+      for (final x in own) {
+        // a: mean intra-cluster distance (excluding the point itself).
+        double a = 0;
+        if (own.length > 1) {
+          a = own.fold(0.0, (s, y) => s + (x - y).abs()) / (own.length - 1);
+        }
+        // b: lowest mean distance to any other cluster.
+        double b = double.infinity;
+        for (int cj = 0; cj < values.length; cj++) {
+          if (cj == ci) continue;
+          final other = values[cj];
+          final mean =
+              other.fold(0.0, (s, y) => s + (x - y).abs()) / other.length;
+          if (mean < b) b = mean;
+        }
+        final denom = max(a, b);
+        if (denom > 0) totalScore += (b - a) / denom;
+        count++;
+      }
+    }
+    return count == 0 ? 0.0 : totalScore / count;
   }
 
   // K-Means clustering implementation using Lloyd's algorithm
@@ -135,10 +214,10 @@ class InsightsProvider extends ChangeNotifier {
       return [
         SessionCluster(
           label: 'Moderate Sessions',
-          color: const Color(0xFFF59E0B),
+          color: AppColors.warning,
           entries: entries,
           centroid: minVal,
-        )
+        ),
       ];
     }
 
@@ -149,7 +228,7 @@ class InsightsProvider extends ChangeNotifier {
 
     List<int> assignments = List.filled(entries.length, 0);
 
-    for (int iter = 0; iter < 100; iter++) {
+    for (int iter = 0; iter < MLConfig.maxKMeansIterations; iter++) {
       bool changed = false;
       for (int i = 0; i < values.length; i++) {
         int best = 0;
@@ -166,7 +245,7 @@ class InsightsProvider extends ChangeNotifier {
           changed = true;
         }
       }
-      
+
       if (!changed) break;
 
       for (int c = 0; c < k; c++) {
@@ -188,15 +267,15 @@ class InsightsProvider extends ChangeNotifier {
       }
       return (centroid: centroids[c], entries: clusterEntries);
     });
-    
+
     indexed.sort((a, b) => a.centroid.compareTo(b.centroid));
 
-    final labels = ['Light Sessions', 'Moderate Sessions', 'Deep Work Sessions'];
-    final colors = [
-      const Color(0xFF10B981),
-      const Color(0xFFF59E0B),
-      const Color(0xFF6366F1),
+    final labels = [
+      'Light Sessions',
+      'Moderate Sessions',
+      'Deep Work Sessions',
     ];
+    final colors = [AppColors.success, AppColors.warning, AppColors.primary];
 
     return List.generate(k, (i) {
       if (indexed[i].entries.isEmpty) return null;

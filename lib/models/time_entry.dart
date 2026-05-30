@@ -22,21 +22,20 @@ class TimeEntry {
     this.endTime,
   });
 
+  /// Parses a Firestore document defensively: missing or wrongly-typed fields
+  /// fall back to safe defaults rather than throwing, so a single malformed
+  /// document can't break loading of the whole collection.
   factory TimeEntry.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = (doc.data() as Map<String, dynamic>?) ?? const {};
     return TimeEntry(
       id: doc.id,
-      projectName: data['projectName'] as String,
-      taskName: data['taskName'] as String,
-      notes: data['notes'] as String,
-      totalTime: (data['totalTime'] as num).toDouble(),
-      date: (data['date'] as Timestamp).toDate(),
-      startTime: data['startTime'] != null
-          ? (data['startTime'] as Timestamp).toDate()
-          : null,
-      endTime: data['endTime'] != null
-          ? (data['endTime'] as Timestamp).toDate()
-          : null,
+      projectName: (data['projectName'] as String?) ?? '',
+      taskName: (data['taskName'] as String?) ?? '',
+      notes: (data['notes'] as String?) ?? '',
+      totalTime: (data['totalTime'] as num?)?.toDouble() ?? 0.0,
+      date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      startTime: (data['startTime'] as Timestamp?)?.toDate(),
+      endTime: (data['endTime'] as Timestamp?)?.toDate(),
     );
   }
 }

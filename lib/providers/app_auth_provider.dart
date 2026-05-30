@@ -50,10 +50,12 @@ class AppAuthProvider extends ChangeNotifier {
     _errorMessage = null;
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
-      
+        email: email,
+        password: password,
+      );
+
       await cred.user!.updateDisplayName(name);
-      
+
       await _saveProfile(cred.user!.uid, name, email);
       return true;
     } on FirebaseAuthException catch (e) {
@@ -81,23 +83,26 @@ class AppAuthProvider extends ChangeNotifier {
           _setLoading(false);
           return false;
         }
-        
+
         final googleAuth = await googleUser.authentication;
-        
+
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        
+
         cred = await _auth.signInWithCredential(credential);
       }
 
       final user = cred.user!;
-      final doc =
-          await _db.collection('users').doc(user.uid).collection('profile').doc('data').get();
+      final doc = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('profile')
+          .doc('data')
+          .get();
       if (!doc.exists) {
-        await _saveProfile(
-            user.uid, user.displayName ?? '', user.email ?? '');
+        await _saveProfile(user.uid, user.displayName ?? '', user.email ?? '');
       }
       return true;
     } on FirebaseAuthException catch (e) {
@@ -124,10 +129,10 @@ class AppAuthProvider extends ChangeNotifier {
         .collection('profile')
         .doc('data')
         .set({
-      'name': name,
-      'email': email,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+          'name': name,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
   }
 
   String _mapError(String code) {

@@ -17,22 +17,26 @@ class InsightsScreen extends StatelessWidget {
 
     // Recompute whenever entries change
     WidgetsBinding.instance.addPostFrameCallback(
-        (_) => insightsProvider.compute(repo.entries.toList()));
+      (_) => insightsProvider.compute(repo.entries.toList()),
+    );
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
-        title: Text(l.insightsTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          l.insightsTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
       ),
       body: Consumer<InsightsProvider>(
         builder: (ctx, provider, _) {
           if (repo.isLoading) {
             return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF6366F1)));
+              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+            );
           }
           if (!provider.hasEnoughData) {
             return _EmptyInsights(l: l);
@@ -86,17 +90,23 @@ class _EmptyInsights extends StatelessWidget {
                 color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.insights,
-                  size: 64, color: Color(0xFF6366F1)),
+              child: const Icon(
+                Icons.insights,
+                size: 64,
+                color: Color(0xFF6366F1),
+              ),
             ),
             const SizedBox(height: 24),
-            Text(l.notEnoughData,
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              l.notEnoughData,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            Text(l.notEnoughDataSubtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF6B7280))),
+            Text(
+              l.notEnoughDataSubtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF6B7280)),
+            ),
           ],
         ),
       ),
@@ -122,25 +132,29 @@ class _SummaryRow extends StatelessWidget {
       childAspectRatio: 1.6,
       children: [
         _StatCard(
-            label: l.totalHours,
-            value: '${ins.totalHours.toStringAsFixed(1)}h',
-            icon: Icons.access_time,
-            color: const Color(0xFF6366F1)),
+          label: l.totalHours,
+          value: '${ins.totalHours.toStringAsFixed(1)}h',
+          icon: Icons.access_time,
+          color: const Color(0xFF6366F1),
+        ),
         _StatCard(
-            label: l.avgHoursPerDay,
-            value: '${ins.avgHoursPerDay.toStringAsFixed(1)}h',
-            icon: Icons.trending_up,
-            color: const Color(0xFF10B981)),
+          label: l.avgHoursPerDay,
+          value: '${ins.avgHoursPerDay.toStringAsFixed(1)}h',
+          icon: Icons.trending_up,
+          color: const Color(0xFF10B981),
+        ),
         _StatCard(
-            label: l.mostProductiveDay,
-            value: ins.mostProductiveDay,
-            icon: Icons.star,
-            color: const Color(0xFFF59E0B)),
+          label: l.mostProductiveDay,
+          value: ins.mostProductiveDay,
+          icon: Icons.star,
+          color: const Color(0xFFF59E0B),
+        ),
         _StatCard(
-            label: l.hoursThisWeek,
-            value: '${ins.hoursThisWeek.toStringAsFixed(1)}h',
-            icon: Icons.calendar_today,
-            color: const Color(0xFFEF4444)),
+          label: l.hoursThisWeek,
+          value: '${ins.hoursThisWeek.toStringAsFixed(1)}h',
+          icon: Icons.calendar_today,
+          color: const Color(0xFFEF4444),
+        ),
       ],
     );
   }
@@ -151,11 +165,12 @@ class _StatCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
-  const _StatCard(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -173,15 +188,21 @@ class _StatCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value,
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: color)),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? Colors.white54 : Colors.grey)),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
+                ),
               ],
             ),
           ],
@@ -208,9 +229,10 @@ class _SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             child,
           ],
@@ -254,9 +276,10 @@ class _ProjectPieChart extends StatelessWidget {
                     title: '${pct.toStringAsFixed(0)}%',
                     radius: 60,
                     titleStyle: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   );
                 }),
                 sectionsSpace: 2,
@@ -328,18 +351,23 @@ class _DailyBarChart extends StatelessWidget {
           }),
           titlesData: FlTitlesData(
             leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
+              sideTitles: SideTitles(showTitles: false),
+            ),
             rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
+              sideTitles: SideTitles(showTitles: false),
+            ),
             topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (val, _) {
                   final date = DateTime.parse(days[val.toInt()].key);
-                  return Text(DateFormat('E').format(date),
-                      style: const TextStyle(fontSize: 10));
+                  return Text(
+                    DateFormat('E').format(date),
+                    style: const TextStyle(fontSize: 10),
+                  );
                 },
               ),
             ),
@@ -362,48 +390,78 @@ class _ClusterList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: ins.clusters.map((cluster) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: cluster.color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: cluster.color.withValues(alpha: 0.3)),
-          ),
-          child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (ins.clusters.length >= 2) ...[
+          Row(
             children: [
-              Container(
-                width: 10,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: cluster.color,
-                  borderRadius: BorderRadius.circular(4),
-                ),
+              const Icon(
+                Icons.verified_outlined,
+                size: 16,
+                color: Color(0xFF6366F1),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(cluster.label,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: cluster.color)),
-                    Text(
-                      '${cluster.entries.length} sessions · '
-                      '${cluster.totalHours.toStringAsFixed(1)}h total · '
-                      'avg ${cluster.centroid.toStringAsFixed(1)}h',
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF6B7280)),
-                    ),
-                  ],
+              const SizedBox(width: 6),
+              Text(
+                '${l.clusterQuality}: ${ins.clusterQuality} '
+                '(${ins.silhouetteScore.toStringAsFixed(2)})',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF6366F1),
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 12),
+        ],
+        ...ins.clusters.map((cluster) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cluster.color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: cluster.color.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: cluster.color,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cluster.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: cluster.color,
+                        ),
+                      ),
+                      Text(
+                        '${cluster.entries.length} sessions · '
+                        '${cluster.totalHours.toStringAsFixed(1)}h total · '
+                        'avg ${cluster.centroid.toStringAsFixed(1)}h',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }

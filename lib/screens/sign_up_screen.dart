@@ -42,14 +42,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(auth.errorMessage ?? 'Sign up failed'),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 4),
-        ));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(auth.errorMessage ?? 'Sign up failed'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
     }
   }
 
@@ -66,16 +69,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: isDark ? Colors.white : Colors.black87, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: isDark ? Colors.white : Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
@@ -90,30 +95,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           height: 72,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6366F1),
-                                Color(0xFF818CF8)
-                              ],
+                              colors: [Color(0xFF6366F1), Color(0xFF818CF8)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(Icons.person_add_rounded,
-                              size: 36, color: Colors.white),
+                          child: const Icon(
+                            Icons.person_add_rounded,
+                            size: 36,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 20),
-                        Text(l.createAccount,
-                            style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold)),
+                        Text(
+                          l.createAccount,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 6),
-                        Text(l.trackSmarter,
-                            style: TextStyle(
-                                fontSize: 14,
-                                color: isDark
-                                    ? Colors.white54
-                                    : Colors.grey.shade600)),
+                        Text(
+                          l.trackSmarter,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? Colors.white54
+                                : Colors.grey.shade600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -129,10 +140,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           hint: l.enterName,
                           label: l.name,
                           icon: Icons.person_outline_rounded,
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty)
-                                  ? l.enterName
-                                  : null,
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? l.enterName
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         AuthField(
@@ -141,10 +151,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           label: l.email,
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (v) =>
-                              (v == null || !v.contains('@'))
-                                  ? l.enterEmail
-                                  : null,
+                          validator: (v) => (v == null || !v.contains('@'))
+                              ? l.enterEmail
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         AuthField(
@@ -154,16 +163,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           icon: Icons.lock_outline,
                           obscure: _obscurePass,
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePass
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined),
-                            onPressed: () => setState(
-                                () => _obscurePass = !_obscurePass),
+                            icon: Icon(
+                              _obscurePass
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            onPressed: () =>
+                                setState(() => _obscurePass = !_obscurePass),
                           ),
-                          validator: (v) =>
-                              (v == null || v.length < 6)
-                                  ? l.enterPassword
-                                  : null,
+                          validator: (v) => (v == null || v.length < 6)
+                              ? l.enterPassword
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         AuthField(
@@ -173,17 +183,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           icon: Icons.lock_outline,
                           obscure: _obscureConfirm,
                           suffixIcon: IconButton(
-                            icon: Icon(_obscureConfirm
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined),
+                            icon: Icon(
+                              _obscureConfirm
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
                             onPressed: () => setState(
-                                () =>
-                                    _obscureConfirm = !_obscureConfirm),
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
                           ),
-                          validator: (v) =>
-                              v != _passwordCtrl.text
-                                  ? l.passwordsDoNotMatch
-                                  : null,
+                          validator: (v) => v != _passwordCtrl.text
+                              ? l.passwordsDoNotMatch
+                              : null,
                         ),
                       ],
                     ),
@@ -203,18 +214,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(l.alreadyHaveAccount,
-                            style: TextStyle(
-                                color: isDark
-                                    ? Colors.white54
-                                    : Colors.grey.shade600)),
+                        Text(
+                          l.alreadyHaveAccount,
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white54
+                                : Colors.grey.shade600,
+                          ),
+                        ),
                         const SizedBox(width: 4),
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: Text(l.signIn,
-                              style: const TextStyle(
-                                  color: Color(0xFF6366F1),
-                                  fontWeight: FontWeight.bold)),
+                          child: Text(
+                            l.signIn,
+                            style: const TextStyle(
+                              color: Color(0xFF6366F1),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),

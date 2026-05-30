@@ -375,4 +375,117 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get scheduleNewSession => 'Planifier une nouvelle session de travail';
+
+  @override
+  String get clusterQuality => 'Qualité du regroupement';
+
+  @override
+  String get mlNoData =>
+      'Aucune donnée. Commencez à enregistrer vos sessions !';
+
+  @override
+  String get productivityScore => 'Score de productivité';
+
+  @override
+  String get scoreVolume => 'Volume';
+
+  @override
+  String get scoreConsistency => 'Régularité';
+
+  @override
+  String get scoreFocus => 'Concentration';
+
+  @override
+  String get scoreBalance => 'Équilibre';
+
+  @override
+  String get scoreEfficiency => 'Efficacité';
+
+  @override
+  String get scoreExcellent => 'Excellent';
+
+  @override
+  String get scoreGood => 'Bon';
+
+  @override
+  String get scoreFair => 'Moyen';
+
+  @override
+  String get scoreNeedsImprovement => 'À améliorer';
+
+  @override
+  String get anomalyDetection => 'Détection d\'anomalies';
+
+  @override
+  String get noAnomalies =>
+      'Aucune anomalie détectée - vos habitudes de travail sont régulières !';
+
+  @override
+  String get patternRecognition => 'Reconnaissance de tendances';
+
+  @override
+  String get noPatterns => 'Pas assez de données pour détecter des tendances';
+
+  @override
+  String get confidenceLabel => 'Confiance';
+
+  @override
+  String get recommendations => 'Recommandations';
+
+  @override
+  String get noRecommendations => 'Aucune recommandation pour le moment';
+
+  @override
+  String get scheduleWorkSession => 'Planifier une session de travail';
+
+  @override
+  String get sectionProject => 'Projet';
+
+  @override
+  String get sectionTask => 'Tâche';
+
+  @override
+  String get sectionSchedule => 'Horaire';
+
+  @override
+  String get sectionReminder => 'Rappel';
+
+  @override
+  String get sectionNotesOptional => 'Notes (facultatif)';
+
+  @override
+  String get scheduleSessionAction => 'Planifier la session';
+
+  @override
+  String get schedulingInProgress => 'Planification...';
+
+  @override
+  String get forecastTitle => 'Prévision';
+
+  @override
+  String get forecastNextDay => 'Prévu pour demain';
+
+  @override
+  String get forecastNext7Days => '7 prochains jours';
+
+  @override
+  String get modelAccuracy => 'Précision du modèle (test indépendant)';
+
+  @override
+  String get trendIncreasing => 'En hausse';
+
+  @override
+  String get trendDecreasing => 'En baisse';
+
+  @override
+  String get trendStable => 'Stable';
+
+  @override
+  String get forecastInsufficient =>
+      'Enregistrez quelques jours de plus pour activer la prévision';
+
+  @override
+  String forecastValidation(int train, int test) {
+    return 'Entraîné sur $train jours · validé sur $test';
+  }
 }
